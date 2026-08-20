@@ -261,7 +261,6 @@ export function renderLanding(req, apk, user) {
   </div></div></div>
 
   <div class="hero-body"><div class="wrap">
-    <p class="eyebrow">Precision ball tracking</p>
     <h1>Read the flight of <em>every</em> shot.</h1>
     <p class="lead">Stand your phone behind the ball. ShotArc follows it off the face, traces the
       line, and reads back ball speed, launch, carry and the quality of the strike.</p>
