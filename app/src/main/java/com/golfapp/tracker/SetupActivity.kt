@@ -2,9 +2,13 @@ package com.golfapp.tracker
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.InputType
+import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -69,17 +73,7 @@ class SetupActivity : AppCompatActivity() {
                 timeCards()
             }
             3 -> ask(R.string.which_course) {
-                val labels = listOf(getString(R.string.no_course)) +
-                    courses.map { "${it.name}\n${it.holes.size} holes · par ${it.par}" }
-                options(labels) { picked ->
-                    if (picked == 0) {
-                        course = null
-                        start()
-                    } else {
-                        course = courses[picked - 1]
-                        showStep(4)
-                    }
-                }
+                courseStep()
             }
             else -> showCard(course ?: return start())
         }
@@ -278,6 +272,78 @@ class SetupActivity : AppCompatActivity() {
         binding.options.addView(name)
         binding.options.addView(hint)
         binding.options.addView(choose)
+    }
+
+    /** A single course option button, matching the wizard's other option buttons. */
+    private fun courseButton(container: LinearLayout, label: String, onClick: () -> Unit) {
+        val pad = (18 * dp).toInt()
+        val button = MaterialButton(
+            this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle
+        ).apply {
+            text = label
+            textSize = 16f
+            gravity = Gravity.CENTER_VERTICAL or Gravity.START
+            setPadding(pad, pad, pad, pad)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).also { it.bottomMargin = (10 * dp).toInt() }
+            setOnClickListener { onClick() }
+        }
+        container.addView(button as View)
+    }
+
+    /** Course selection with a search field that filters the Gauteng list as you type. */
+    private fun courseStep() {
+        val search = EditText(this).apply {
+            hint = getString(R.string.search_courses)
+            setHintTextColor(0x80FFFFFF.toInt())
+            setTextColor(0xFFFFFFFF.toInt())
+            textSize = 16f
+            isSingleLine = true
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
+            setBackgroundResource(R.drawable.search_bg)
+            setPadding((16 * dp).toInt(), (13 * dp).toInt(), (16 * dp).toInt(), (13 * dp).toInt())
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).also { it.bottomMargin = (14 * dp).toInt() }
+        }
+        val list = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+        }
+        binding.options.addView(search)
+        binding.options.addView(list)
+
+        fun rebuild(query: String) {
+            list.removeAllViews()
+            val q = query.trim().lowercase()
+            if (q.isEmpty()) {
+                courseButton(list, getString(R.string.no_course)) { course = null; start() }
+            }
+            val matches = courses.filter { q.isEmpty() || it.name.lowercase().contains(q) }
+            for (c in matches) {
+                courseButton(list, "${c.name}\n${c.holes.size} holes · par ${c.par}") {
+                    course = c; showStep(4)
+                }
+            }
+            if (q.isNotEmpty() && matches.isEmpty()) {
+                list.addView(TextView(this).apply {
+                    text = getString(R.string.no_course_match)
+                    setTextColor(0x99FFFFFF.toInt())
+                    textSize = 14f
+                    setPadding((4 * dp).toInt(), (10 * dp).toInt(), 0, 0)
+                })
+            }
+        }
+
+        search.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) = rebuild(s?.toString() ?: "")
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
+        })
+        rebuild("")
     }
 
     private fun start() {
