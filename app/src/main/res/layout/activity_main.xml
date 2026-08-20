@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <com.golfapp.tracker.TrackOverlayView
+        android:id="@+id/overlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="12dp"
+        android:background="@drawable/bg_panel"
+        android:padding="12dp"
+        android:textColor="@color/white"
+        android:textSize="15sp"
+        android:text="@string/camera_permission_rationale"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/holePanel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_panel"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="8dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/statusText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/holeText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:lineSpacingExtra="2dp"
+            android:textColor="@color/white"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/holedButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/holed" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/resultPanel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="12dp"
+        android:background="@drawable/bg_panel"
+        android:orientation="vertical"
+        android:padding="14dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/pickers"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/scoreText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/ball_yellow"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/resultText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="6dp"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:lineSpacingExtra="3dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/pickers"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_panel"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        app:layout_constraintBottom_toTopOf="@id/controls"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Spinner
+            android:id="@+id/clubSpinner"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:contentDescription="@string/club" />
+
+        <Spinner
+            android:id="@+id/lieSpinner"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:contentDescription="@string/lie" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/controls"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="12dp"
+        android:background="@drawable/bg_panel"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="10dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingEnd="8dp"
+            android:paddingRight="8dp"
+            android:text="@string/sensitivity"
+            android:textColor="@color/white"
+            android:textSize="13sp" />
+
+        <SeekBar
+            android:id="@+id/sensitivity"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:max="100"
+            android:progress="50" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/debugSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/debug"
+            android:textColor="@color/white"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/syncButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sync"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/resetButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/reset" />
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">ShotArc</string>
+    <string name="reset">Reset</string>
+    <string name="debug">Debug</string>
+    <string name="sensitivity">Sensitivity</string>
+    <string name="camera_permission_rationale">Camera access is needed to see the ball.</string>
+    <string name="score_format">%1$d · %2$s</string>
+    <string name="club">Club</string>
+    <string name="lie">Lie</string>
+    <string name="step_of">Step %1$d of %2$d</string>
+    <string name="where_playing">Where are you playing?</string>
+    <string name="which_ball">What colour is the ball?</string>
+    <string name="what_light">What time of day is it?</string>
+    <string name="which_course">Which course are you playing?</string>
+    <string name="no_course">Practice — no course</string>
+    <string name="start_round">Start round</string>
+    <string name="par_total">Par %1$d</string>
+    <string name="card_header">Hole   Par      Length</string>
+    <string name="par_estimated">* par estimated from the hole length (%1$d holes)</string>
+    <string name="holed">Holed</string>
+    <string name="hole_line">Hole %1$d · %2$s · %3$d m\n%4$d m to the green · %5$d shots · %6$s</string>
+    <string name="sync">Sync</string>
+    <string name="synced">Synced ✓</string>
+    <string name="sync_failed">Sync failed — try again on Wi‑Fi</string>
+</resources>

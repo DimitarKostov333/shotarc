@@ -1,0 +1,12 @@
+*.iml
+.gradle/
+local.properties
+.idea/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+server/node_modules/
+server/data/
+tools/__pycache__/
+deploy/shotarc.env

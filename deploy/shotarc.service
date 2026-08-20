@@ -1,0 +1,23 @@
+[Unit]
+Description=ShotArc — golf tracker API, dashboard and APK host
+After=network.target
+
+[Service]
+Type=simple
+User=shotarc
+WorkingDirectory=/opt/shotarc/server
+Environment=PORT=8080
+Environment=DATA_DIR=/var/lib/shotarc
+Environment=APK_PATH=/var/lib/shotarc/golf-tracker.apk
+EnvironmentFile=-/etc/shotarc.env
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/shotarc
+
+[Install]
+WantedBy=multi-user.target

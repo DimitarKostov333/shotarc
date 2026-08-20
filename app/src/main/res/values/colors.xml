@@ -1,0 +1,6 @@
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="ball_yellow">#FFE8FF00</color>
+    <color name="scrim">#99000000</color>
+</resources>
