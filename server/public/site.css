@@ -56,6 +56,13 @@ em{font-style:italic}
 .menu-btn.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
 .menu-btn.open span:nth-child(2){opacity:0}
 .menu-btn.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+@media(min-width:1024px){
+  .top{padding-top:32px}
+  .mark{font-size:1.9rem}
+  .mark-ico{width:42px;height:42px;border-radius:12px}
+  .nav{gap:44px}
+  .nav a{font-size:.95rem;letter-spacing:.13em}
+}
 
 /* hero */
 .hero{position:relative;height:100svh;min-height:600px;overflow:hidden;background:var(--pine)}
