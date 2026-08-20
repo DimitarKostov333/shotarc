@@ -50,6 +50,19 @@ class TrackOverlayView @JvmOverloads constructor(
         color = Color.rgb(120, 255, 160)
     }
     private val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(232, 255, 0) }
+    private val targetPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; color = 0x2EFFFFFF; strokeWidth = dp(1f)
+        pathEffect = android.graphics.DashPathEffect(floatArrayOf(dp(6f), dp(10f)), 0f)
+    }
+    private val reticlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; color = 0xFF78FFA0.toInt(); strokeWidth = dp(2f)
+    }
+    private val reticleRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; color = 0x4D78FFA0; strokeWidth = dp(1f)
+    }
+    private val bracketPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; color = 0xFF78FFA0.toInt(); strokeWidth = dp(2.5f); strokeCap = Paint.Cap.ROUND
+    }
     private val debugPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = dp(1.5f)
@@ -89,12 +102,26 @@ class TrackOverlayView @JvmOverloads constructor(
             canvas.drawText("blobs ${f.candidates.size}", dp(12f), height - dp(12f), debugText)
         }
 
+        // target line down the middle of the frame
+        if (f.state != TrackState.RESULT) {
+            canvas.drawLine(width / 2f, dp(8f), width / 2f, height - dp(8f), targetPaint)
+        }
+
+        // lock reticle on the ball at address
         f.tee?.let { tee ->
             if (f.state == TrackState.READY || f.state == TrackState.SEARCHING) {
-                val r = max(dp(14f), tee.radius * scale * 1.8f)
-                canvas.drawCircle(mx(tee.x), my(tee.y), r, teePaint)
-                canvas.drawLine(mx(tee.x) - r - dp(6f), my(tee.y), mx(tee.x) - r, my(tee.y), teePaint)
-                canvas.drawLine(mx(tee.x) + r, my(tee.y), mx(tee.x) + r + dp(6f), my(tee.y), teePaint)
+                val cx = mx(tee.x); val cy = my(tee.y)
+                val locked = f.state == TrackState.READY
+                val r = dp(34f)
+                reticlePaint.color = if (locked) 0xFF78FFA0.toInt() else 0x8078FFA0.toInt()
+                canvas.drawCircle(cx, cy, r, reticlePaint)
+                canvas.drawCircle(cx, cy, dp(46f), reticleRing)
+                val b = dp(12f)
+                for (sx in intArrayOf(-1, 1)) for (sy in intArrayOf(-1, 1)) {
+                    val x = cx + sx * r; val y = cy + sy * r
+                    canvas.drawLine(x, y, x - sx * b, y, bracketPaint)
+                    canvas.drawLine(x, y, x, y - sy * b, bracketPaint)
+                }
             }
         }
 

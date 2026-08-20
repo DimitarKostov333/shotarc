@@ -13,6 +13,9 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.animation.ValueAnimator
 import android.graphics.Typeface
+import android.text.SpannableStringBuilder
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
 import android.graphics.drawable.GradientDrawable
 import android.view.animation.DecelerateInterpolator
 import android.widget.LinearLayout
@@ -48,6 +51,7 @@ class MainActivity : AppCompatActivity() {
     private val detector = BallDetector()
     private var tracker: ShotTracker? = null
     private var session = SessionSetup()
+    private var negotiatedFps = 0
     private var sensitivity = 50
     private var params = DetectorParams.forSession(SessionSetup(), 50)
     private var paramsCalibration: BallCalibration? = null
@@ -64,7 +68,7 @@ class MainActivity : AppCompatActivity() {
     private var shownState: TrackState? = null
 
     private val requestCamera = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) startCamera() else binding.statusText.text = getString(R.string.camera_permission_rationale)
+        if (granted) startCamera() else binding.statusMessage.text = getString(R.string.camera_permission_rationale)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -230,6 +234,7 @@ class MainActivity : AppCompatActivity() {
                 .setResolutionSelector(resolution)
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             fastestFrameRate(provider, selector)?.let { range ->
+                negotiatedFps = range.upper
                 Camera2Interop.Extender(analysisBuilder)
                     .setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, range)
             }
@@ -310,10 +315,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun render(frame: TrackerFrame) {
         binding.overlay.submit(frame)
-        if (frame.state != shownState || binding.statusText.text.isEmpty()) {
+        if (frame.state != shownState) {
             shownState = frame.state
-            binding.statusText.text = frame.message
+            binding.statusMessage.text = frame.message
         }
+        updateConditions(frame)
+        updateCue(frame)
         val metrics = frame.metrics
         if (metrics !== shownMetrics) {
             shownMetrics = metrics
@@ -499,6 +506,50 @@ class MainActivity : AppCompatActivity() {
         binding.overlay.clear()
     }
 
+    private val cMet = 0xFF78FFA0.toInt()
+    private val cNot = 0x8CFFFFFF.toInt()
+
+    private fun updateConditions(f: TrackerFrame) {
+        if (f.state == TrackState.FLIGHT || f.state == TrackState.RESULT) {
+            binding.conditionsText.visibility = View.GONE; return
+        }
+        val sb = SpannableStringBuilder()
+        fun add(text: String, ok: Boolean) {
+            val start = sb.length
+            sb.append(if (ok) "✓ " else "· ").append(text).append("   ")
+            sb.setSpan(ForegroundColorSpan(if (ok) cMet else cNot), start, sb.length, 0)
+        }
+        add("GRASS", f.groundSeen)
+        add("STILL ${f.stillFrames}/${f.stillTarget}", f.stillFrames >= f.stillTarget)
+        add(session.ball.label.uppercase(), true)
+        if (negotiatedFps > 0) {
+            val start = sb.length; sb.append("$negotiatedFps fps")
+            sb.setSpan(ForegroundColorSpan(cNot), start, sb.length, 0)
+        }
+        binding.conditionsText.text = sb
+        binding.conditionsText.visibility = View.VISIBLE
+        binding.lockDot.alpha = if (f.state == TrackState.READY) 1f else 0.4f
+    }
+
+    private fun updateCue(f: TrackerFrame) {
+        val show = f.state == TrackState.SEARCHING || f.state == TrackState.READY
+        val msg = when {
+            !show -> null
+            f.tee != null && f.tee.y < f.imgH * 0.40f ->
+                "Ball is high in frame — tilt the phone down so the flight stays in view"
+            f.state == TrackState.SEARCHING && !f.groundSeen &&
+                f.candidates.any { it.aspect <= 2f && it.area >= 4 } -> "Rest the ball on the grass"
+            binding.overlay.showDebug && f.candidates.size > 12 ->
+                "Too many ball-coloured blobs — lower sensitivity"
+            else -> null
+        }
+        if (msg == null) { binding.cueText.visibility = View.GONE; return }
+        val sb = SpannableStringBuilder("CUE   ").append(msg)
+        sb.setSpan(StyleSpan(Typeface.BOLD), 0, 3, 0)
+        binding.cueText.text = sb
+        binding.cueText.visibility = View.VISIBLE
+    }
+
     /** Hide the live HUD while the full-screen result is up. */
     private fun showResultChrome(show: Boolean) {
         val v = if (show) View.VISIBLE else View.GONE
@@ -506,6 +557,7 @@ class MainActivity : AppCompatActivity() {
         binding.controls.visibility = v
         binding.pickers.visibility = v
         binding.holePanel.visibility = if (show && round != null) View.VISIBLE else View.GONE
+        if (!show) binding.cueText.visibility = View.GONE
     }
 
 }

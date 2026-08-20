@@ -44,6 +44,9 @@ data class TrackerFrame(
     val candidates: List<Blob>,
     val metrics: ShotMetrics?,
     val rejection: String?,
+    val stillFrames: Int,
+    val stillTarget: Int,
+    val groundSeen: Boolean,
     val imgW: Int,
     val imgH: Int,
 )
@@ -144,6 +147,9 @@ class ShotTracker(private val intrinsics: Intrinsics) {
             candidates = blobs,
             metrics = lastMetrics,
             rejection = rejection,
+            stillFrames = recent.size,
+            stillTarget = STATIONARY_FRAMES,
+            groundSeen = blobs.any { it.groundFraction >= MIN_GROUND_FRACTION },
             imgW = width,
             imgH = height,
         )
