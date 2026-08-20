@@ -243,7 +243,8 @@ export function renderLanding(req, apk, user) {
 
   <div class="top"><div class="wrap">
     <a class="mark" href="/">ShotArc<span class="dot">.</span></a>
-    <nav class="nav">
+    <button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    <nav class="nav" id="nav">
       <a href="#craft">The App</a>
       <a href="#dashboard">The Dashboard</a>
       <a class="members" href="${dashLink}">${user ? 'Dashboard' : 'Members'}</a>
@@ -327,6 +328,12 @@ export function renderLanding(req, apk, user) {
     Flight and landing are modelled from the measured launch, not observed after it leaves frame.</p>
 </div></footer>
 
+<script>
+(function(){var b=document.getElementById('menuBtn'),n=document.getElementById('nav');if(!b||!n)return;
+ b.addEventListener('click',function(){var o=n.classList.toggle('open');b.classList.toggle('open',o);b.setAttribute('aria-expanded',o);});
+ n.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){n.classList.remove('open');b.classList.remove('open');b.setAttribute('aria-expanded','false');});});
+})();
+</script>
 <script src="/assets/three.min.js?v=${assetV()}"></script>
 <script src="/assets/scene.js?v=${assetV()}"></script>
 </body></html>`

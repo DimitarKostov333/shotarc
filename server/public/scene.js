@@ -104,17 +104,29 @@
   var glowMat = new THREE.MeshBasicMaterial({ color: 0xE7C572, transparent: true, opacity: 0.20 });
   var arcMesh = null, glowMesh = null, arcCount = 0;
 
+  var GOLD = 0xE7C572, RED = 0xD8453A, DIM = 0x9A9A86;
   var shots = [
-    { mph: 152, launch: 13.2, carry: 258, apex: 32, lateral: -9, score: 87, shape: 'Draw' },
-    { mph: 118, launch: 18.6, carry: 172, apex: 30, lateral: 0, score: 91, shape: 'Straight' },
-    { mph: 145, launch: 12.1, carry: 241, apex: 27, lateral: 13, score: 79, shape: 'Fade' }
+    { mph: 138, launch: 10.5, carry: 206, apex: 19, lateral: -60, score: 24, shape: 'Slice', type: 'slice', tracer: RED },
+    { mph: 152, launch: 13.2, carry: 258, apex: 32, lateral: -9, score: 87, shape: 'Draw', type: 'good', tracer: GOLD },
+    { mph: 118, launch: 18.6, carry: 172, apex: 30, lateral: 0, score: 91, shape: 'Straight', type: 'good', tracer: GOLD },
+    { mph: 145, launch: 12.1, carry: 241, apex: 27, lateral: 13, score: 79, shape: 'Fade', type: 'good', tracer: GOLD },
+    { mph: 41, launch: 3, carry: 9, apex: 0, lateral: 0, score: 0, shape: 'Duff', type: 'duff', tracer: DIM }
   ];
   var U = 0.235;
 
   function buildCurve(shot) {
-    var pts = [], n = 40;
-    for (var i = 0; i <= n; i++) {
-      var u = i / n;
+    var pts = [], n = 40, i, u;
+    if (shot.type === 'duff') {
+      // barely leaves the face: three small, decaying hops along the ground
+      for (i = 0; i <= n; i++) {
+        u = i / n;
+        var hop = Math.abs(Math.sin(u * Math.PI * 3)) * (1 - u) * 0.55;   // metres
+        pts.push(new THREE.Vector3(0.3 * U, hop * U * 0.9 + 0.42, -shot.carry * u * U));
+      }
+      return new THREE.CatmullRomCurve3(pts);
+    }
+    for (i = 0; i <= n; i++) {
+      u = i / n;
       var height = shot.apex * 4 * u * (1 - u);
       var lat = shot.lateral * Math.pow(u, 1.6);
       pts.push(new THREE.Vector3(lat * U, Math.max(0, height) * U * 0.9 + 0.42, -shot.carry * u * U));
@@ -130,6 +142,9 @@
     if (glowMesh) { scene.remove(glowMesh); glowMesh.geometry.dispose(); }
     var tube = new THREE.TubeGeometry(curve, 120, 0.16, 8, false);
     var glow = new THREE.TubeGeometry(curve, 120, 0.42, 8, false);
+    var col = shot.tracer || GOLD;
+    arcMat.color.setHex(col); glowMat.color.setHex(col);
+    glowMat.opacity = shot.type === 'duff' ? 0.08 : 0.20;
     arcMesh = new THREE.Mesh(tube, arcMat); glowMesh = new THREE.Mesh(glow, glowMat);
     arcCount = tube.index.count;
     tube.setDrawRange(0, 0); glow.setDrawRange(0, 0);
@@ -148,17 +163,32 @@
       hud.classList.add('show');
     } else if (phase === 'flight') {
       elStatus.textContent = 'Tracking'; elStatus.style.color = '#D8B36A';
-      elSpeed.textContent = Math.round(shot.mph * prog) + ' mph';
-      elLaunch.textContent = (shot.launch * prog).toFixed(1) + '°';
-      elCarry.textContent = Math.round(shot.carry * prog) + ' m'; elScore.textContent = '';
+      if (shot.type === 'duff') {
+        elSpeed.textContent = elLaunch.textContent = elCarry.textContent = '—'; elScore.textContent = '';
+      } else {
+        elSpeed.textContent = Math.round(shot.mph * prog) + ' mph';
+        elLaunch.textContent = (shot.launch * prog).toFixed(1) + '°';
+        elCarry.textContent = Math.round(shot.carry * prog) + ' m'; elScore.textContent = '';
+      }
+    } else if (shot.type === 'duff') {
+      elStatus.textContent = 'Not registered · rolled'; elStatus.style.color = '#E0A24B';
+      elSpeed.textContent = elLaunch.textContent = elCarry.textContent = '—';
+      elScore.textContent = '';
+    } else if (shot.type === 'slice') {
+      elStatus.textContent = 'Slice · out of play'; elStatus.style.color = '#E06A5C';
+      elSpeed.textContent = shot.mph + ' mph'; elLaunch.textContent = shot.launch.toFixed(1) + '°';
+      elCarry.textContent = shot.carry + ' m';
+      elScore.textContent = shot.score + ' · ' + grade(shot.score);
+      elScore.style.color = '#E06A5C';
     } else {
       elStatus.textContent = shot.shape + ' · captured'; elStatus.style.color = '#BBCBB2';
       elSpeed.textContent = shot.mph + ' mph'; elLaunch.textContent = shot.launch.toFixed(1) + '°';
       elCarry.textContent = shot.carry + ' m';
       elScore.textContent = shot.score + ' · ' + grade(shot.score);
+      elScore.style.color = '';
     }
   }
-  function grade(s) { return s >= 85 ? 'Excellent' : s >= 70 ? 'Good' : s >= 55 ? 'Fair' : 'Loose'; }
+  function grade(s) { return s >= 85 ? 'Excellent' : s >= 70 ? 'Good' : s >= 55 ? 'Fair' : s >= 35 ? 'Loose' : 'Poor'; }
 
   var ADDRESS = 1.3, FLIGHT = 2.3, HOLD = 2.0, TOTAL = ADDRESS + FLIGHT + HOLD;
   var t0 = null;
