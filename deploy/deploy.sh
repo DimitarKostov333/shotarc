@@ -29,7 +29,12 @@ rsync -az "$APK" "$HOST:/var/lib/shotarc/golf-tracker.apk"
 
 echo "→ systemd unit + nginx site + secrets"
 scp -q deploy/shotarc.service "$HOST:/etc/systemd/system/shotarc.service"
-scp -q deploy/nginx-shotarc.conf "$HOST:/etc/nginx/sites-available/shotarc.conf"
+# The nginx site is installed once. After that certbot owns it (it adds the TLS block to the same
+# file), so re-copying would wipe HTTPS. To change it deliberately, edit on the box or remove it
+# first and re-run certbot.
+ssh "$HOST" 'test -f /etc/nginx/sites-available/shotarc.conf' \
+  && echo "  nginx site already present — left as-is (certbot-managed)" \
+  || scp -q deploy/nginx-shotarc.conf "$HOST:/etc/nginx/sites-available/shotarc.conf"
 if [ -f deploy/shotarc.env ]; then
   scp -q deploy/shotarc.env "$HOST:/etc/shotarc.env"
   ssh "$HOST" 'chmod 600 /etc/shotarc.env'

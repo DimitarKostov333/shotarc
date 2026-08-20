@@ -38,6 +38,11 @@ certbot rewrites the server block with the certificate and the :443 listener, an
 timer. Until DNS resolves, the site works over plain HTTP on the domain but a certificate cannot
 be issued.
 
+**After certbot has run, it owns `shotarc.conf`.** `deploy.sh` therefore installs that file only
+once and never overwrites it, so redeploys keep HTTPS. To change the nginx config later, edit it
+on the box (or delete it and re-run certbot) — do not just re-copy the repo version, which has no
+TLS block.
+
 ## Secrets
 
 Put them in `/etc/shotarc.env` on the server (read by the unit, never in git):

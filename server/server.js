@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { dirname as pathDirname } from 'node:path'
 import { openDatabase } from './db.js'
-import { renderDashboard, renderSession, renderLanding, renderLogin } from './views.js'
+import { renderDashboard, renderSession, renderLanding, renderLogin, renderInstall } from './views.js'
 import { hashPassword, verifyPassword, makeSessionCookie, clearSessionCookie, currentUser, requireAuth } from './auth.js'
 
 const PORT = Number(process.env.PORT ?? 8080)
@@ -61,6 +61,11 @@ function requireKey(configured, header) {
 app.get('/', (req, res) => {
   const apk = existsSync(APK_PATH) ? statSync(APK_PATH) : null
   res.type('html').send(renderLanding(req, apk, currentUser(req, SESSION_SECRET)))
+})
+
+app.get('/install', (req, res) => {
+  const apk = existsSync(APK_PATH) ? statSync(APK_PATH) : null
+  res.type('html').send(renderInstall(apk))
 })
 
 // --- dashboard login

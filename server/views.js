@@ -1,3 +1,19 @@
+import { statSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname } from 'node:path'
+
+const PUBLIC_DIR = dirname(fileURLToPath(import.meta.url)) + '/public'
+let _assetV = null
+/** A stamp that changes whenever a static asset changes, so cached copies are busted on deploy. */
+function assetV() {
+  if (_assetV) return _assetV
+  try {
+    const m = ['scene.js', 'site.css', 'three.min.js'].map(f => statSync(`${PUBLIC_DIR}/${f}`).mtimeMs)
+    _assetV = Math.max(...m).toString(36).slice(-7)
+  } catch { _assetV = '1' }
+  return _assetV
+}
+
 const CSS = `
 :root{color-scheme:dark}
 *{box-sizing:border-box}
@@ -217,7 +233,7 @@ export function renderLanding(req, apk, user) {
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ShotArc — track every shot</title>
 <meta name="description" content="Track your golf ball from behind, see its flight, speed, launch and score — and your whole round on the dashboard.">
-<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/site.css?v=${assetV()}">
 </head><body>
 <header class="hero">
   <canvas id="scene"></canvas>
@@ -238,7 +254,7 @@ export function renderLanding(req, apk, user) {
     <p class="lede">Stand your phone behind the ball. ShotArc tracks it off the face, draws the
       arc, and tells you the speed, launch, carry and a score for the strike — indoors or out.</p>
     <div class="cta">
-      <a class="btn" href="/golf-tracker.apk">↓ Download the app<span class="meta" style="color:#0c1005cc">&nbsp;· ${size}</span></a>
+      <a class="btn" href="/install">↓ Download the app<span class="meta" style="color:#0c1005cc">&nbsp;· ${size}</span></a>
       <a class="btn ghost" href="${dashLink}">${dashLabel}</a>
     </div>
     <p class="meta" style="margin-top:12px">Android · sideload · ${apk ? 'free' : ''}</p>
@@ -269,7 +285,7 @@ export function renderLanding(req, apk, user) {
   </div>
   <div class="dash-cta">
     <a class="btn" href="${dashLink}">${dashLabel}</a>
-    <a class="btn ghost" href="/golf-tracker.apk">↓ Download the app</a>
+    <a class="btn ghost" href="/install">↓ Download the app</a>
   </div>
 </div></section>
 
@@ -287,8 +303,8 @@ export function renderLanding(req, apk, user) {
   Flight and landing are modelled from the measured launch.
 </div></footer>
 
-<script src="/assets/three.min.js"></script>
-<script src="/assets/scene.js"></script>
+<script src="/assets/three.min.js?v=${assetV()}"></script>
+<script src="/assets/scene.js?v=${assetV()}"></script>
 </body></html>`
 }
 
@@ -296,7 +312,7 @@ export function renderLogin({ next, error }) {
   const nextField = next ? `<input type="hidden" name="next" value="${escape(next)}">` : ''
   return `<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ShotArc — log in</title><link rel="stylesheet" href="/assets/site.css">
+<title>ShotArc — log in</title><link rel="stylesheet" href="/assets/site.css?v=${assetV()}">
 <style>
  body{display:flex;min-height:100svh;align-items:center;justify-content:center;padding:24px}
  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:30px;width:min(24rem,100%)}
@@ -351,4 +367,51 @@ function sampleSession() {
     lat += 0.004; lon += 0.0025
   })
   return shots
+}
+
+
+/** The get-the-app page the download buttons point to — always a visible navigation. */
+export function renderInstall(apk) {
+  const size = apk ? `${(apk.size / 1048576).toFixed(1)} MB` : 'coming soon'
+  return `<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShotArc — get the app</title><link rel="stylesheet" href="/assets/site.css?v=${assetV()}">
+<style>
+ body{display:flex;min-height:100svh;align-items:center;justify-content:center;padding:28px}
+ .card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:34px;width:min(30rem,100%)}
+ .card b{color:var(--accent);font-size:1.15rem}
+ h1{font-size:1.6rem;margin:.4rem 0 .2rem}
+ .dl{display:block;text-align:center;background:var(--accent);color:#0c1005;font-weight:800;
+   font-size:1.1rem;padding:16px;border-radius:13px;margin:20px 0 6px}
+ .meta{color:var(--muted);font-size:.85rem;text-align:center}
+ ol{color:var(--muted);padding-left:20px;margin-top:22px}
+ li{margin:.55rem 0}
+ .note{background:#0e150f;border:1px solid var(--line);border-radius:11px;padding:12px 14px;
+   color:#cfe3d4;font-size:.9rem;margin-top:18px}
+ .back{display:block;text-align:center;margin-top:20px;color:#8ea394;font-size:.9rem}
+</style></head><body>
+<main class="card">
+  <b>ShotArc</b>
+  <h1>Get the app</h1>
+  <p class="meta" style="text-align:left">Android · ${size}</p>
+  <a class="dl" id="dl" href="/golf-tracker.apk" download="shotarc.apk">↓ Download the APK</a>
+  <p class="meta">If the download does not start, <a href="/golf-tracker.apk" download="shotarc.apk">tap here</a>.</p>
+  <ol>
+    <li>When it finishes, open the downloaded file.</li>
+    <li>Android asks to allow installs from your browser this once — turn it on and continue.</li>
+    <li>Allow the camera when ShotArc first asks. That is all it needs.</li>
+  </ol>
+  <div class="note">Chrome warns about any APK that is not from the Play Store — that warning is
+    expected here. Open it on an Android phone; a laptop cannot install it.</div>
+  <a class="back" href="/">← Back to shotarc.co.za</a>
+</main>
+<script>
+  // nudge the download and give visible feedback even where the browser UI is quiet
+  var dl = document.getElementById('dl');
+  dl.addEventListener('click', function(){
+    var t = dl.textContent; dl.textContent = 'Starting download…';
+    setTimeout(function(){ dl.textContent = t; }, 2500);
+  });
+</script>
+</body></html>`
 }
