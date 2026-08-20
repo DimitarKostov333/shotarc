@@ -1,6 +1,6 @@
 import express from 'express'
 import { randomUUID } from 'node:crypto'
-import { existsSync, statSync, createReadStream } from 'node:fs'
+import { existsSync, statSync, createReadStream, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { dirname as pathDirname } from 'node:path'
@@ -20,7 +20,7 @@ const SESSION_SECRET = process.env.SESSION_SECRET || DASHBOARD_KEY || 'shotarc-d
 const PUBLIC_DIR = pathDirname(fileURLToPath(import.meta.url)) + '/public'
 
 function currentVersion() {
-  try { return JSON.parse(require('node:fs').readFileSync(join(DATA_DIR, 'version.json'), 'utf8')) }
+  try { return JSON.parse(readFileSync(join(DATA_DIR, 'version.json'), 'utf8')) }
   catch { return { versionCode: 0, versionName: 'unknown' } }
 }
 

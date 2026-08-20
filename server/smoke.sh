@@ -36,6 +36,10 @@ detail=$(curl -sf -b $JAR $BASE/dashboard/session/test-session)
 for needle in "Flight profile" "Shot paths" "DRIVER" "<svg" ; do
   echo "$detail" | grep -q "$needle" || { echo "session page missing '$needle'"; exit 1; }
 done
+vc=$(curl -sf $BASE/api/version | grep -o "versionCode")
+[ -n "$vc" ] || { echo "/api/version broken"; exit 1; }
+# APK download must be no-store so the browser always gets the latest build
+curl -sfI $BASE/golf-tracker.apk | grep -qi "cache-control: no-store" || echo "note: apk not no-store (ok if no APK in test dir)"
 landing=$(curl -sf $BASE/)
 for needle in "Read the flight of" "/assets/scene.js" "Flight profile"; do
   echo "$landing" | grep -q "$needle" || { echo "landing missing '$needle'"; exit 1; }
