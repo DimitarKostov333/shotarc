@@ -106,11 +106,11 @@
 
   var GOLD = 0xE7C572, RED = 0xD8453A, DIM = 0x9A9A86;
   var shots = [
-    { mph: 138, launch: 10.5, carry: 206, apex: 19, lateral: -60, score: 24, shape: 'Slice', type: 'slice', tracer: RED },
-    { mph: 152, launch: 13.2, carry: 258, apex: 32, lateral: -9, score: 87, shape: 'Draw', type: 'good', tracer: GOLD },
-    { mph: 118, launch: 18.6, carry: 172, apex: 30, lateral: 0, score: 91, shape: 'Straight', type: 'good', tracer: GOLD },
-    { mph: 145, launch: 12.1, carry: 241, apex: 27, lateral: 13, score: 79, shape: 'Fade', type: 'good', tracer: GOLD },
-    { mph: 41, launch: 3, carry: 9, apex: 0, lateral: 0, score: 0, shape: 'Duff', type: 'duff', tracer: DIM }
+    { kmh: 222, launch: 10.5, carry: 206, apex: 19, lateral: -60, score: 24, shape: 'Slice', type: 'slice', tracer: RED },
+    { kmh: 245, launch: 13.2, carry: 258, apex: 32, lateral: -9, score: 87, shape: 'Draw', type: 'good', tracer: GOLD },
+    { kmh: 190, launch: 18.6, carry: 172, apex: 30, lateral: 0, score: 91, shape: 'Straight', type: 'good', tracer: GOLD },
+    { kmh: 233, launch: 12.1, carry: 241, apex: 27, lateral: 13, score: 79, shape: 'Fade', type: 'good', tracer: GOLD },
+    { kmh: 66, launch: 3, carry: 9, apex: 0, lateral: 0, score: 0, shape: 'Duff', type: 'duff', tracer: DIM }
   ];
   var U = 0.235;
 
@@ -166,7 +166,7 @@
       if (shot.type === 'duff') {
         elSpeed.textContent = elLaunch.textContent = elCarry.textContent = '—'; elScore.textContent = '';
       } else {
-        elSpeed.textContent = Math.round(shot.mph * prog) + ' mph';
+        elSpeed.textContent = Math.round(shot.kmh * prog) + ' km/h';
         elLaunch.textContent = (shot.launch * prog).toFixed(1) + '°';
         elCarry.textContent = Math.round(shot.carry * prog) + ' m'; elScore.textContent = '';
       }
@@ -176,13 +176,13 @@
       elScore.textContent = '';
     } else if (shot.type === 'slice') {
       elStatus.textContent = 'Slice · out of play'; elStatus.style.color = '#E06A5C';
-      elSpeed.textContent = shot.mph + ' mph'; elLaunch.textContent = shot.launch.toFixed(1) + '°';
+      elSpeed.textContent = shot.kmh + ' km/h'; elLaunch.textContent = shot.launch.toFixed(1) + '°';
       elCarry.textContent = shot.carry + ' m';
       elScore.textContent = shot.score + ' · ' + grade(shot.score);
       elScore.style.color = '#E06A5C';
     } else {
       elStatus.textContent = shot.shape + ' · captured'; elStatus.style.color = '#BBCBB2';
-      elSpeed.textContent = shot.mph + ' mph'; elLaunch.textContent = shot.launch.toFixed(1) + '°';
+      elSpeed.textContent = shot.kmh + ' km/h'; elLaunch.textContent = shot.launch.toFixed(1) + '°';
       elCarry.textContent = shot.carry + ' m';
       elScore.textContent = shot.score + ' · ' + grade(shot.score);
       elScore.style.color = '';

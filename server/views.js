@@ -85,7 +85,7 @@ export function renderDashboard(stats, sessions, key) {
       ${tile(stats.sessions, 'Sessions')}
       ${tile(stats.shots, 'Shots tracked')}
       ${tile(stats.longestM ? Math.round(stats.longestM) + ' m' : '—', 'Longest carry')}
-      ${tile(stats.fastestMs ? Math.round(stats.fastestMs * 2.2369) + ' mph' : '—', 'Fastest ball')}
+      ${tile(stats.fastestMs ? Math.round(stats.fastestMs * 3.6) + ' km/h' : '—', 'Fastest ball')}
     </div>
     <h2>Sessions</h2>
     ${sessions.length ? `<div class="wrap"><table>
@@ -178,7 +178,7 @@ export function renderSession(session, shots, key) {
       <td>${s.hole ?? '—'}.${s.shot_number ?? ''}</td>
       <td>${escape(s.club ?? '')}</td>
       <td>${escape(s.lie ?? '')}</td>
-      <td>${s.ball_speed_ms ? Math.round(s.ball_speed_ms * 2.2369) + ' mph' : '—'}</td>
+      <td>${s.ball_speed_ms ? Math.round(s.ball_speed_ms * 3.6) + ' km/h' : '—'}</td>
       <td>${s.launch_deg?.toFixed(1) ?? '—'}°</td>
       <td>${s.offline_deg?.toFixed(1) ?? '—'}°</td>
       <td>${s.carry_m ? Math.round(s.carry_m) + ' m' : '—'}</td>
@@ -195,7 +195,7 @@ export function renderSession(session, shots, key) {
     <div class="tiles">
       ${tile(parsed.length, 'Shots this session')}
       ${tile(longest?.carry_m ? Math.round(longest.carry_m) + ' m' : '—', 'Longest shot')}
-      ${tile(fastest?.ball_speed_ms ? Math.round(fastest.ball_speed_ms * 2.2369) + ' mph' : '—', 'Fastest ball')}
+      ${tile(fastest?.ball_speed_ms ? Math.round(fastest.ball_speed_ms * 3.6) + ' km/h' : '—', 'Fastest ball')}
       ${tile(session.holes_played || 0, 'Holes finished')}
       ${tile(`<span class="${cls}">${label}</span>`, 'Against par')}
       ${tile(session.course_par ?? '—', 'Course par')}
@@ -220,7 +220,7 @@ export function renderLanding(req, apk, user) {
 
   const preview = `
     <div class="ptiles">
-      ${ptile('152', 'mph ball speed')}
+      ${ptile('245', 'km/h ball speed')}
       ${ptile('258 m', 'longest carry')}
       ${ptile('87', 'best strike')}
       ${ptile('+3', 'through 6')}

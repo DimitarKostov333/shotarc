@@ -71,7 +71,6 @@ class MainActivity : AppCompatActivity() {
         telemetry = Telemetry(this, BuildConfig.SERVER_BASE_URL)
         telemetry.announceInstall(BuildConfig.VERSION_NAME)
         if (telemetry.enabled) {
-            binding.syncButton.visibility = View.VISIBLE
             binding.syncButton.setOnClickListener { resync() }
         }
         startRound()
@@ -146,15 +145,9 @@ class MainActivity : AppCompatActivity() {
         val round = round ?: return
         val hole = round.hole
         val par = if (hole.parKnown) "par ${hole.par}" else "par ${hole.par}~"
-        binding.holeText.text = getString(
-            R.string.hole_line,
-            hole.number,
-            par,
-            hole.lengthM,
-            round.metresToGreen.toInt(),
-            round.shotsOnThisHole,
-            round.describeAgainstPar(),
-        )
+        val parts = mutableListOf("Hole ${hole.number}", par, "${round.metresToGreen.toInt()} m to green")
+        if (round.shotsOnThisHole > 0) parts.add("${round.shotsOnThisHole} shots · ${round.describeAgainstPar()}")
+        binding.holeText.text = parts.joinToString(" · ")
     }
 
     private fun setUpPickers() {
@@ -300,7 +293,7 @@ class MainActivity : AppCompatActivity() {
         binding.overlay.submit(frame)
         if (frame.state != shownState || binding.statusText.text.isEmpty()) {
             shownState = frame.state
-            binding.statusText.text = "${frame.message}\n${session.describe()}"
+            binding.statusText.text = frame.message
         }
         val metrics = frame.metrics
         if (metrics !== shownMetrics) {
@@ -311,6 +304,7 @@ class MainActivity : AppCompatActivity() {
                 lastShot = round?.record(metrics)
                 lastShot?.let { shotLog.add(it) }
                 telemetry.push(session, course, round, shotLog)
+                if (telemetry.enabled) binding.syncButton.visibility = View.VISIBLE
                 showHole()
                 binding.resultPanel.visibility = View.VISIBLE
                 binding.scoreText.text = getString(R.string.score_format, metrics.score, metrics.grade)
@@ -331,9 +325,9 @@ class MainActivity : AppCompatActivity() {
             else -> String.format("draw %.1f°", -m.curveDeg)
         }
         val speed = if (m.speedIsLowerBound) {
-            String.format("Ball speed ≈ %.0f mph (rough)", m.ballSpeedMph)
+            String.format("Ball speed ≈ %.0f km/h (rough)", m.ballSpeedKmh)
         } else {
-            String.format("Ball speed %.0f mph (%.0f m/s)", m.ballSpeedMph, m.ballSpeedMs)
+            String.format("Ball speed %.0f km/h", m.ballSpeedKmh)
         }
         val apex = if (m.stillRising) {
             String.format("Rose %.1f m before leaving frame", m.apexM)

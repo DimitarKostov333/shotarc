@@ -18,7 +18,6 @@
     <string name="card_header">Hole   Par      Length</string>
     <string name="par_estimated">* par estimated from the hole length (%1$d holes)</string>
     <string name="holed">Holed</string>
-    <string name="hole_line">Hole %1$d · %2$s · %3$d m\n%4$d m to the green · %5$d shots · %6$s</string>
     <string name="sync">Sync</string>
     <string name="synced">Synced ✓</string>
     <string name="sync_failed">Sync failed — try again on Wi‑Fi</string>

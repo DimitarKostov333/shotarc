@@ -31,7 +31,7 @@ data class ShotMetrics(
     val stoppedEarly: Boolean,
     val setup: ShotSetup,
 ) {
-    val ballSpeedMph get() = ballSpeedMs * 2.2369363
+    val ballSpeedKmh get() = ballSpeedMs * 3.6
 }
 
 /** Everything the overlay needs for one frame. */
