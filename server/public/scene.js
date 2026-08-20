@@ -80,43 +80,21 @@
   bunker.rotation.x = -Math.PI / 2; bunker.position.set(-7, 0.02, -74); bunker.scale.set(1.5, 1, 1);
   scene.add(bunker);
 
-  // --- trees, lining the hole and massing on the horizon
-  var trunkMat = new THREE.MeshStandardMaterial({ color: 0x5b3f2a, roughness: 1 });
-  var leafMats = [0x1f5a2e, 0x246b34, 0x2c7d3c, 0x35502a].map(function (c) {
-    return new THREE.MeshStandardMaterial({ color: c, roughness: 1 });
-  });
-  var coneGeo = new THREE.ConeGeometry(1, 1, 7);
-  var trunkGeo = new THREE.CylinderGeometry(0.12, 0.16, 1, 5);
-
-  function tree(x, z, s) {
-    var g = new THREE.Group();
-    var t = new THREE.Mesh(trunkGeo, trunkMat); t.scale.set(s, s * 1.4, s); t.position.y = s * 0.7;
-    g.add(t);
-    var lm = leafMats[(Math.random() * leafMats.length) | 0];
-    for (var i = 0; i < 3; i++) {
-      var c = new THREE.Mesh(coneGeo, lm);
-      var w = s * (2.2 - i * 0.5);
-      c.scale.set(w, s * (2.4 - i * 0.4), w);
-      c.position.y = s * (1.4 + i * 1.15);
-      g.add(c);
-    }
-    g.position.set(x, 0, z);
-    g.rotation.y = Math.random() * Math.PI;
-    return g;
+  // --- soft rolling hills on the horizon (kept clean — no fussy trees)
+  var hillMat = new THREE.MeshStandardMaterial({ color: 0x24502f, roughness: 1 });
+  var farMat = new THREE.MeshStandardMaterial({ color: 0x2b5836, roughness: 1 });
+  function hill(x, z, w, h, d, mat) {
+    var m = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 18), mat);
+    m.scale.set(w, h, d); m.position.set(x, -h * 0.58, z);
+    return m;
   }
-
-  var forest = new THREE.Group();
-  // side lines down the hole
-  for (var z = -8; z > -175; z -= 5.5 + Math.random() * 3) {
-    var jx = 1.6 * Math.random();
-    forest.add(tree(-10 - jx - Math.random() * 4, z, 1.2 + Math.random() * 1.1));
-    forest.add(tree(10 + jx + Math.random() * 4, z, 1.2 + Math.random() * 1.1));
-  }
-  // a denser band across the back — the treeline horizon
-  for (var x2 = -95; x2 < 95; x2 += 4 + Math.random() * 3) {
-    forest.add(tree(x2, -180 - Math.random() * 22, 2 + Math.random() * 2.2));
-  }
-  scene.add(forest);
+  var hills = new THREE.Group();
+  hills.add(hill(-58, -168, 70, 22, 40, hillMat));
+  hills.add(hill(28, -182, 96, 30, 46, farMat));
+  hills.add(hill(104, -164, 66, 20, 36, hillMat));
+  hills.add(hill(-120, -178, 88, 26, 42, farMat));
+  hills.add(hill(-10, -150, 54, 15, 30, hillMat));
+  scene.add(hills);
 
   // --- ball, arc, shots (as before)
   var ball = new THREE.Mesh(new THREE.SphereGeometry(0.42, 32, 24),

@@ -63,10 +63,11 @@ em{font-style:italic}
 .hero-cta{display:flex;align-items:center;gap:26px;flex-wrap:wrap;margin-top:2rem}
 
 /* the tracer readout, glass + brass, understated */
-.hud{position:absolute;right:0;top:26vh;z-index:4;pointer-events:none;padding:0 clamp(22px,5vw,56px)}
+.hud{position:absolute;left:0;right:0;top:clamp(84px,12vh,116px);z-index:4;pointer-events:none}
+.hud .wrap{display:flex;justify-content:flex-start}
 .hud-card{background:rgba(11,22,15,.52);backdrop-filter:blur(9px);border:1px solid var(--line-cream);
   border-left:2px solid var(--brass-lite);border-radius:3px;padding:16px 20px;min-width:14.5rem;
-  opacity:0;transform:translateX(10px);transition:opacity .5s,transform .5s}
+  opacity:0;transform:translateY(-8px);transition:opacity .5s,transform .5s}
 .hud-card.show{opacity:1;transform:none}
 .hud-status{font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--brass-lite);font-weight:600}
 .hud-row{display:flex;justify-content:space-between;gap:26px;margin-top:9px;
@@ -132,4 +133,12 @@ section{padding:clamp(72px,11vw,140px) 0}
 .foot a:hover{color:var(--cream)}
 .foot .fine{max-width:34rem;line-height:1.6}
 
+@media(max-width:720px){
+  .hud{top:74px}
+  .hud-card{min-width:0;width:12.4rem;padding:12px 14px}
+  .hud-row{gap:14px;margin-top:7px;padding-top:7px}
+  .hud-score{font-size:1.3rem;margin-top:9px}
+  .hero-body{padding-bottom:6vh}
+  .hero-body h1{font-size:clamp(2.1rem,9vw,3rem)}
+}
 @media(prefers-reduced-motion:reduce){#scene{opacity:.92}}

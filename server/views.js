@@ -250,13 +250,13 @@ export function renderLanding(req, apk, user) {
     </nav>
   </div></div>
 
-  <div class="hud"><div class="hud-card" id="hud">
+  <div class="hud"><div class="wrap"><div class="hud-card" id="hud">
     <div class="hud-status" id="hud-status">Ball locked</div>
     <div class="hud-row"><span class="k">Ball speed</span><span class="v" id="hud-speed">—</span></div>
     <div class="hud-row"><span class="k">Launch</span><span class="v" id="hud-launch">—</span></div>
     <div class="hud-row"><span class="k">Carry</span><span class="v" id="hud-carry">—</span></div>
     <div class="hud-score" id="hud-score"></div>
-  </div></div>
+  </div></div></div>
 
   <div class="hero-body"><div class="wrap">
     <p class="eyebrow">Precision ball tracking</p>

@@ -1,0 +1,27 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="400dp" android:height="260dp"
+    android:viewportWidth="400" android:viewportHeight="260">
+    <!-- back wall / interior -->
+    <path android:fillColor="#DBE2DD" android:pathData="M0,0h400v260H0z"/>
+    <!-- ceiling -->
+    <path android:fillColor="#C7D0CB" android:pathData="M0,0h400v46H0z"/>
+    <path android:fillColor="#EDF3EF" android:pathData="M150,10h40v30h-40z"/>
+    <path android:fillColor="#EDF3EF" android:pathData="M232,10h40v30h-40z"/>
+    <!-- side bay dividers, converging (perspective) -->
+    <path android:fillColor="#33474C" android:pathData="M0,46 L120,96 L120,210 L0,260 Z"/>
+    <path android:fillColor="#33474C" android:pathData="M400,46 L280,96 L280,210 L400,260 Z"/>
+    <path android:fillColor="#3E555B" android:pathData="M0,46 L120,96 L120,120 L0,80 Z"/>
+    <path android:fillColor="#3E555B" android:pathData="M400,46 L280,96 L280,120 L400,80 Z"/>
+    <!-- the net panel with a target -->
+    <path android:fillColor="#243029" android:pathData="M120,96h160v114H120z"/>
+    <path android:fillColor="#2E3D34" android:pathData="M120,96h160v10H120z"/>
+    <path android:fillColor="#C7473C" android:pathData="M200,150m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0"/>
+    <path android:fillColor="#E9E3D4" android:pathData="M200,150m-19,0a19,19 0,1 1,38 0a19,19 0,1 1,-38 0"/>
+    <path android:fillColor="#C7473C" android:pathData="M200,150m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0"/>
+    <!-- hitting mat -->
+    <path android:fillColor="#3E7A46" android:pathData="M120,210 L280,210 L360,260 L40,260 Z"/>
+    <path android:fillColor="#478A4F" android:pathData="M150,214 L250,214 L300,246 L100,246 Z"/>
+    <!-- ball on a tee -->
+    <path android:fillColor="#F6F1E6" android:pathData="M200,226m-9,0a9,9 0,1 1,18 0a9,9 0,1 1,-18 0"/>
+    <path android:fillColor="#C9B487" android:pathData="M197,234h6v10h-6z"/>
+</vector>

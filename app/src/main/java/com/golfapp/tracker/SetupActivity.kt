@@ -4,8 +4,14 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.card.MaterialCardView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import com.golfapp.tracker.databinding.ActivitySetupBinding
@@ -54,16 +60,10 @@ class SetupActivity : AppCompatActivity() {
         binding.stepLabel.text = getString(R.string.step_of, (index + 1).coerceAtMost(steps), steps)
         when (index) {
             0 -> ask(R.string.where_playing) {
-                options(Environment.entries.map { it.label }) { picked ->
-                    environment = Environment.entries[picked]
-                    showStep(1)
-                }
+                environmentCards()
             }
             1 -> ask(R.string.which_ball) {
-                options(BallColour.entries.map { if (it == BallColour.WHITE) "${it.label} (default)" else it.label }) { picked ->
-                    ball = BallColour.entries[picked]
-                    showStep(2)
-                }
+                ballCarousel()
             }
             2 -> ask(R.string.what_light) {
                 options(TimeOfDay.entries.map { it.label }) { picked ->
@@ -147,6 +147,129 @@ class SetupActivity : AppCompatActivity() {
             }
             binding.options.addView(button as View)
         }
+    }
+
+    private val dp get() = resources.displayMetrics.density
+
+    /** Two illustrated cards: a course for outdoors, a driving-range bay for indoors. */
+    private fun environmentCards() {
+        data class Choice(val env: Environment, val image: Int, val title: String, val sub: String)
+        val choices = listOf(
+            Choice(Environment.OUTDOORS, R.drawable.il_course, "Outdoors", "On the course or the range"),
+            Choice(Environment.INDOORS, R.drawable.il_range, "Indoors", "A bay or a net at home"),
+        )
+        for (c in choices) {
+            val card = MaterialCardView(this).apply {
+                radius = 18 * dp
+                cardElevation = 4 * dp
+                strokeWidth = 0
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, (168 * dp).toInt()
+                ).also { it.bottomMargin = (14 * dp).toInt() }
+                isClickable = true
+                setOnClickListener {
+                    environment = c.env
+                    showStep(1)
+                }
+            }
+            val frame = FrameLayout(this)
+            frame.addView(ImageView(this).apply {
+                setImageResource(c.image)
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                layoutParams = FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            })
+            frame.addView(View(this).apply {
+                setBackgroundResource(R.drawable.scrim_bottom)
+                layoutParams = FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            })
+            val text = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding((18 * dp).toInt(), 0, (18 * dp).toInt(), (16 * dp).toInt())
+                layoutParams = FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM
+                )
+            }
+            text.addView(TextView(this).apply {
+                this.text = c.title; setTextColor(0xFFFFFFFF.toInt()); textSize = 22f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+            })
+            text.addView(TextView(this).apply {
+                this.text = c.sub; setTextColor(0xCCFFFFFF.toInt()); textSize = 13f
+            })
+            frame.addView(text)
+            card.addView(frame)
+            binding.options.addView(card)
+        }
+    }
+
+    /** A golf ball you can swipe through the colours, spinning as it goes. */
+    private fun ballCarousel() {
+        val pager = ViewPager2(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, (300 * dp).toInt()
+            )
+            offscreenPageLimit = 1
+        }
+        val name = TextView(this).apply {
+            gravity = Gravity.CENTER
+            textSize = 22f
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            setTextColor(0xFFFFFFFF.toInt())
+            setPadding(0, (8 * dp).toInt(), 0, (2 * dp).toInt())
+        }
+        val hint = TextView(this).apply {
+            gravity = Gravity.CENTER
+            textSize = 13f
+            setTextColor(0x99FFFFFF.toInt())
+            text = getString(R.string.swipe_colours)
+            setPadding(0, 0, 0, (16 * dp).toInt())
+        }
+
+        pager.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val ball = BallView(this@SetupActivity).apply {
+                    layoutParams = RecyclerView.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                }
+                return object : RecyclerView.ViewHolder(ball) {}
+            }
+            override fun getItemCount() = BallColour.entries.size
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+                (holder.itemView as BallView).ballColor = BallColour.entries[position].displayColor
+            }
+        }
+
+        fun reflect(position: Int) {
+            val c = BallColour.entries[position]
+            name.text = if (c == BallColour.WHITE) "${c.label} · default" else c.label
+        }
+        pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) = reflect(position)
+        })
+        pager.setCurrentItem(ball.ordinal, false)
+        reflect(ball.ordinal)
+
+        val choose = MaterialButton(this).apply {
+            text = getString(R.string.choose_ball)
+            textSize = 16f
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { it.topMargin = (10 * dp).toInt() }
+            setOnClickListener {
+                ball = BallColour.entries[pager.currentItem]
+                showStep(2)
+            }
+        }
+
+        binding.options.addView(pager)
+        binding.options.addView(name)
+        binding.options.addView(hint)
+        binding.options.addView(choose)
     }
 
     private fun start() {

@@ -19,12 +19,14 @@ enum class BallColour(
     val cr: Int,
     val spread: Int,
     val lumaFloor: Int,
+    /** How the ball is drawn in the picker; detection uses the YCbCr fields, not this. */
+    val displayColor: Int,
 ) {
-    WHITE("White", 128, 128, 16, 150),
-    YELLOW("Yellow", 6, 133, 42, 80),
-    ORANGE("Orange", 39, 197, 45, 70),
-    NEON_GREEN("Neon green", 40, 88, 30, 115),
-    RED("Red", 96, 223, 45, 45),
+    WHITE("White", 128, 128, 16, 150, 0xFFF6F4EC.toInt()),
+    YELLOW("Yellow", 6, 133, 42, 80, 0xFFE6E838.toInt()),
+    ORANGE("Orange", 39, 197, 45, 70, 0xFFFF7A1F.toInt()),
+    NEON_GREEN("Neon green", 40, 88, 30, 115, 0xFFB4F53C.toInt()),
+    RED("Red", 96, 223, 45, 45, 0xFFE23B3B.toInt()),
 }
 
 /**

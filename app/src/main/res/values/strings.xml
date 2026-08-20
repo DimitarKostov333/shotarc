@@ -22,4 +22,6 @@
     <string name="sync">Sync</string>
     <string name="synced">Synced ✓</string>
     <string name="sync_failed">Sync failed — try again on Wi‑Fi</string>
+    <string name="swipe_colours">Swipe to match your ball</string>
+    <string name="choose_ball">Choose this ball</string>
 </resources>
