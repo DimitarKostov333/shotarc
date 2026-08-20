@@ -155,8 +155,8 @@ class SetupActivity : AppCompatActivity() {
     private fun environmentCards() {
         data class Choice(val env: Environment, val image: Int, val title: String, val sub: String)
         val choices = listOf(
-            Choice(Environment.OUTDOORS, R.drawable.il_course, "Outdoors", "On the course or the range"),
-            Choice(Environment.INDOORS, R.drawable.il_range, "Indoors", "A bay or a net at home"),
+            Choice(Environment.OUTDOORS, R.drawable.photo_course, "Outdoors", "On the course or the range"),
+            Choice(Environment.INDOORS, R.drawable.photo_range, "Indoors", "A bay or a net at home"),
         )
         for (c in choices) {
             val card = MaterialCardView(this).apply {
