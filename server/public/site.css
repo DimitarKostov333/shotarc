@@ -88,7 +88,7 @@ section{padding:clamp(72px,11vw,140px) 0}
 .rule{height:1px;background:var(--line);border:0;margin:0}
 
 /* statement */
-.statement{text-align:center;background:linear-gradient(180deg,#0b1610 0,#0b1610 2px,var(--paper) 190px);padding-top:clamp(140px,20vw,230px)}
+.statement{text-align:center;background:var(--paper) linear-gradient(180deg,#0b1610 0%,#112318 14%,#20301f 30%,#3f4c33 46%,#726f52 62%,#a89f80 76%,#d3ccb2 88%,var(--paper) 100%) no-repeat top / 100% clamp(340px,44vh,500px);padding-top:clamp(380px,48vh,540px)}
 .statement h2{max-width:20ch;margin:0 auto;color:var(--ink)}
 .statement .lead{max-width:34rem;margin:24px auto 0}
 
