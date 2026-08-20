@@ -5,6 +5,19 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// Version derives from the git commit count so every build increments; CI or a caller can
+// override with -PappVersionCode / -PappVersionName.
+val gitCommitCount: Int = (project.findProperty("appVersionCode") as String?)?.toIntOrNull() ?: run {
+    try {
+        val proc = ProcessBuilder("git", "rev-list", "--count", "HEAD")
+            .directory(project.rootDir).redirectErrorStream(true).start()
+        val text = proc.inputStream.bufferedReader().readText().trim()
+        proc.waitFor()
+        text.toIntOrNull() ?: 1
+    } catch (e: Exception) { 1 }
+}
+val appVersionName = (project.findProperty("appVersionName") as String?) ?: "1.0.$gitCommitCount"
+
 // The ingest secret lives in deploy/shotarc.env (gitignored), shared with the server, never in git.
 val ingestKey: String = rootProject.file("deploy/shotarc.env").let { file ->
     if (!file.exists()) return@let ""
@@ -21,8 +34,8 @@ android {
         applicationId = "za.co.shotarc.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = gitCommitCount
+        versionName = appVersionName
 
         // Where the dashboard lives. Set golfServerUrl in gradle.properties or on the command
         // line; leave it empty and the app uploads nothing.

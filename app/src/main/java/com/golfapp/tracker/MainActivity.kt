@@ -70,6 +70,15 @@ class MainActivity : AppCompatActivity() {
         params = DetectorParams.forSession(session, sensitivity)
         telemetry = Telemetry(this, BuildConfig.SERVER_BASE_URL)
         telemetry.announceInstall(BuildConfig.VERSION_NAME)
+        telemetry.checkForUpdate(BuildConfig.VERSION_CODE) { name ->
+            runOnUiThread {
+                android.widget.Toast.makeText(
+                    this,
+                    getString(R.string.update_available, name),
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
         if (telemetry.enabled) {
             binding.syncButton.setOnClickListener { resync() }
         }

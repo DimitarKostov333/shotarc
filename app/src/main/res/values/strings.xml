@@ -25,4 +25,5 @@
     <string name="choose_ball">Choose this ball</string>
     <string name="search_courses">Search Gauteng courses…</string>
     <string name="no_course_match">No course matches that name.</string>
+    <string name="update_available">Update available: v%1$s — download it again at shotarc.co.za</string>
 </resources>

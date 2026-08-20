@@ -29,6 +29,25 @@ class Telemetry(context: Context, private val baseUrl: String) {
     @Volatile var lastPushOk = false
         private set
 
+    /** Ask the server for the latest build; call back (off the main thread) if it is newer. */
+    fun checkForUpdate(currentVersionCode: Int, onNewer: (String) -> Unit) {
+        if (!enabled) return
+        sender.execute {
+            runCatching {
+                val connection = (URL(baseUrl.trimEnd('/') + "/api/version").openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 6000
+                    readTimeout = 6000
+                }
+                val body = connection.inputStream.bufferedReader().use { it.readText() }
+                connection.disconnect()
+                val json = JSONObject(body)
+                if (json.optInt("versionCode", 0) > currentVersionCode) {
+                    onNewer(json.optString("versionName", ""))
+                }
+            }
+        }
+    }
+
     fun announceInstall(versionName: String) {
         if (!enabled) return
         post("/api/install", JSONObject().apply {

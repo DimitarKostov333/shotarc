@@ -19,6 +19,11 @@ const DASHBOARD_KEY = process.env.DASHBOARD_KEY ?? ''
 const SESSION_SECRET = process.env.SESSION_SECRET || DASHBOARD_KEY || 'shotarc-dev-secret'
 const PUBLIC_DIR = pathDirname(fileURLToPath(import.meta.url)) + '/public'
 
+function currentVersion() {
+  try { return JSON.parse(require('node:fs').readFileSync(join(DATA_DIR, 'version.json'), 'utf8')) }
+  catch { return { versionCode: 0, versionName: 'unknown' } }
+}
+
 const db = openDatabase(join(DATA_DIR, 'golf.db'))
 
 // Seed the first dashboard account from the environment, so a fresh box has a way in.
@@ -65,7 +70,12 @@ app.get('/', (req, res) => {
 
 app.get('/install', (req, res) => {
   const apk = existsSync(APK_PATH) ? statSync(APK_PATH) : null
-  res.type('html').send(renderInstall(apk))
+  res.type('html').send(renderInstall(apk, currentVersion()))
+})
+
+app.get('/api/version', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store')
+  res.json({ ...currentVersion(), url: `${req.protocol}://${req.get('host')}/golf-tracker.apk` })
 })
 
 // --- dashboard login
@@ -101,6 +111,7 @@ app.get('/golf-tracker.apk', (req, res) => {
     .run(now(), req.get('user-agent') ?? '', ipPrefix(req))
   res.setHeader('Content-Type', 'application/vnd.android.package-archive')
   res.setHeader('Content-Disposition', 'attachment; filename="golf-tracker.apk"')
+  res.setHeader('Cache-Control', 'no-store, must-revalidate')
   createReadStream(APK_PATH).pipe(res)
 })
 

@@ -27,6 +27,17 @@ rsync -az --delete --exclude node_modules --exclude data server/ "$HOST:/opt/sho
 echo "→ APK ($(du -h "$APK" | cut -f1))"
 rsync -az "$APK" "$HOST:/var/lib/shotarc/golf-tracker.apk"
 
+# publish the version so the site and the app can tell what the latest build is
+AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -1)
+if [ -n "$AAPT" ]; then
+  VINFO=$("$AAPT" dump badging "$APK" 2>/dev/null | grep -oE "versionCode='[0-9]*' versionName='[^']*'")
+  VCODE=$(echo "$VINFO" | sed -E "s/.*versionCode='([0-9]*)'.*/\1/")
+  VNAME=$(echo "$VINFO" | sed -E "s/.*versionName='([^']*)'.*/\1/")
+  printf '{"versionCode":%s,"versionName":"%s"}\n' "${VCODE:-0}" "${VNAME:-unknown}" > /tmp/shotarc-version.json
+  rsync -az /tmp/shotarc-version.json "$HOST:/var/lib/shotarc/version.json"
+  echo "→ version $VNAME ($VCODE)"
+fi
+
 echo "→ systemd unit + nginx site + secrets"
 scp -q deploy/shotarc.service "$HOST:/etc/systemd/system/shotarc.service"
 # The nginx site is installed once. After that certbot owns it (it adds the TLS block to the same

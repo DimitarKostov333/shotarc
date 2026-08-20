@@ -407,7 +407,7 @@ function sampleSession() {
 
 
 /** The get-the-app page the download buttons point to — always a visible navigation. */
-export function renderInstall(apk) {
+export function renderInstall(apk, version) {
   const size = apk ? `${(apk.size / 1048576).toFixed(1)} MB` : 'coming soon'
   return `<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -429,7 +429,7 @@ export function renderInstall(apk) {
  .back:hover{color:var(--cream)}
 </style></head><body>
 <main class="card">
-  <p class="eyebrow">Android · ${size}</p>
+  <p class="eyebrow">Android · ${size}${version && version.versionName && version.versionName !== "unknown" ? ` · v${version.versionName}` : ""}</p>
   <h1 class="serif">Get the app</h1>
   <div class="dl"><a class="btn on-dark" id="dl" href="/golf-tracker.apk" download="shotarc.apk">Download the APK</a></div>
   <p class="hint">If it does not begin, <a href="/golf-tracker.apk" download="shotarc.apk">tap here</a>.</p>
