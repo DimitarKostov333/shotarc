@@ -37,7 +37,7 @@ for needle in "Flight profile" "Shot paths" "DRIVER" "<svg" ; do
   echo "$detail" | grep -q "$needle" || { echo "session page missing '$needle'"; exit 1; }
 done
 landing=$(curl -sf $BASE/)
-for needle in "See every shot" "/assets/scene.js" "Flight profile"; do
+for needle in "Read the flight of" "/assets/scene.js" "Flight profile"; do
   echo "$landing" | grep -q "$needle" || { echo "landing missing '$needle'"; exit 1; }
 done
 for a in site.css scene.js three.min.js; do

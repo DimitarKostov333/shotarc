@@ -10,18 +10,18 @@
   catch (e) { canvas.style.display = 'none'; return; }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
-  var HORIZON = 0x9fc7d8;
+  var HORIZON = 0xE7D8B4;
   var scene = new THREE.Scene();
   scene.background = new THREE.Color(HORIZON);
-  scene.fog = new THREE.Fog(HORIZON, 60, 210);
+  scene.fog = new THREE.Fog(HORIZON, 45, 185);
 
   var camera = new THREE.PerspectiveCamera(55, 1, 0.1, 500);
   camera.position.set(0, 1.7, 9);
   camera.lookAt(0, 3.2, -60);
 
-  scene.add(new THREE.HemisphereLight(0xdff1ff, 0x2c4a24, 1.05));
-  var sun = new THREE.DirectionalLight(0xfff4e0, 1.7);
-  sun.position.set(-16, 26, 10);
+  scene.add(new THREE.HemisphereLight(0xf3e6c8, 0x33461f, 1.0));
+  var sun = new THREE.DirectionalLight(0xffdca0, 1.85);
+  sun.position.set(-22, 13, 8);
   scene.add(sun);
 
   // sky dome: soft blue up, warm haze at the horizon
@@ -29,7 +29,7 @@
     new THREE.SphereGeometry(300, 24, 16),
     new THREE.ShaderMaterial({
       side: THREE.BackSide,
-      uniforms: { top: { value: new THREE.Color(0x3f7fb8) }, bot: { value: new THREE.Color(HORIZON) } },
+      uniforms: { top: { value: new THREE.Color(0x6E93AE) }, bot: { value: new THREE.Color(HORIZON) } },
       vertexShader: 'varying float h;void main(){h=normalize(position).y;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
       fragmentShader: 'varying float h;uniform vec3 top;uniform vec3 bot;void main(){gl_FragColor=vec4(mix(bot,top,clamp(h*0.9+0.15,0.0,1.0)),1.0);}'
     })
@@ -120,10 +120,10 @@
 
   // --- ball, arc, shots (as before)
   var ball = new THREE.Mesh(new THREE.SphereGeometry(0.42, 32, 24),
-    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, emissive: 0x222222 }));
+    new THREE.MeshStandardMaterial({ color: 0xFBF6EA, roughness: 0.4, emissive: 0x1a1710 }));
   scene.add(ball);
-  var arcMat = new THREE.MeshBasicMaterial({ color: 0xe8ff00 });
-  var glowMat = new THREE.MeshBasicMaterial({ color: 0xe8ff00, transparent: true, opacity: 0.22 });
+  var arcMat = new THREE.MeshBasicMaterial({ color: 0xE7C572 });
+  var glowMat = new THREE.MeshBasicMaterial({ color: 0xE7C572, transparent: true, opacity: 0.20 });
   var arcMesh = null, glowMesh = null, arcCount = 0;
 
   var shots = [
@@ -165,16 +165,16 @@
   var elScore = document.getElementById('hud-score');
   function setHud(shot, prog, phase) {
     if (phase === 'lock') {
-      elStatus.textContent = 'Ball locked — hit it'; elStatus.style.color = '#7ee787';
+      elStatus.textContent = 'Ball locked'; elStatus.style.color = '#BBCBB2';
       elSpeed.textContent = elLaunch.textContent = elCarry.textContent = '—'; elScore.textContent = '';
       hud.classList.add('show');
     } else if (phase === 'flight') {
-      elStatus.textContent = 'Tracking…'; elStatus.style.color = '#e8ff00';
+      elStatus.textContent = 'Tracking'; elStatus.style.color = '#D8B36A';
       elSpeed.textContent = Math.round(shot.mph * prog) + ' mph';
       elLaunch.textContent = (shot.launch * prog).toFixed(1) + '°';
       elCarry.textContent = Math.round(shot.carry * prog) + ' m'; elScore.textContent = '';
     } else {
-      elStatus.textContent = 'Shot captured · ' + shot.shape; elStatus.style.color = '#7ee787';
+      elStatus.textContent = shot.shape + ' · captured'; elStatus.style.color = '#BBCBB2';
       elSpeed.textContent = shot.mph + ' mph'; elLaunch.textContent = shot.launch.toFixed(1) + '°';
       elCarry.textContent = shot.carry + ' m';
       elScore.textContent = shot.score + ' · ' + grade(shot.score);

@@ -47,6 +47,7 @@ const page = (title, body) =>
 measured launch, not observed.</footer></main>`
 
 const q = key => (key ? `?key=${encodeURIComponent(key)}` : '')
+const ptile = (n, l) => `<div class="ptile"><div class="n">${n}</div><div class="l">${l}</div></div>`
 const tile = (n, l) => `<div class="tile"><div class="n">${n ?? '—'}</div><div class="l">${l}</div></div>`
 
 function parClass(v) {
@@ -212,95 +213,118 @@ export function renderSession(session, shots, key) {
 
 /** Marketing landing at /, with the 3D shot preview, a live dashboard preview, and the CTAs. */
 export function renderLanding(req, apk, user) {
-  const size = apk ? `${(apk.size / 1048576).toFixed(1)} MB` : 'coming soon'
+  const size = apk ? `${(apk.size / 1048576).toFixed(1)} MB` : ''
   const dashLink = user ? '/dashboard' : '/login?next=/dashboard'
-  const dashLabel = user ? 'Open dashboard' : 'Log in'
-
+  const dashLabel = user ? 'Enter the dashboard' : 'Members'
   const sample = sampleSession()
+
   const preview = `
-    <div class="tiles">
-      ${tile('152 mph', 'Ball speed')}
-      ${tile('258 m', 'Longest carry')}
-      ${tile('87', 'Best shot')}
-      ${tile('+3', 'vs par')}
+    <div class="ptiles">
+      ${ptile('152', 'mph ball speed')}
+      ${ptile('258 m', 'longest carry')}
+      ${ptile('87', 'best strike')}
+      ${ptile('+3', 'through 6')}
     </div>
-    <div class="charts">
-      <figure class="chart">${planView(sample)}</figure>
-      <figure class="chart">${trajectoryView(sample)}</figure>
+    <div class="pcharts">
+      <figure class="pchart">${planView(sample)}</figure>
+      <figure class="pchart">${trajectoryView(sample)}</figure>
     </div>`
 
   return `<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ShotArc — track every shot</title>
-<meta name="description" content="Track your golf ball from behind, see its flight, speed, launch and score — and your whole round on the dashboard.">
+<title>ShotArc — read the flight of every shot</title>
+<meta name="description" content="Stand your phone behind the ball. ShotArc traces the flight and gives you ball speed, launch, carry and a score — then your whole round on the dashboard.">
 <link rel="stylesheet" href="/assets/site.css?v=${assetV()}">
 </head><body>
+
 <header class="hero">
   <canvas id="scene"></canvas>
-  <div class="hero-grad"></div>
-  <div class="hud"><div class="wrap"><div class="hud-card" id="hud">
-    <div class="hud-status" id="hud-status">Ball locked — hit it</div>
+  <div class="hero-veil"></div>
+
+  <div class="top"><div class="wrap">
+    <a class="mark" href="/">ShotArc<span class="dot">.</span></a>
+    <nav class="nav">
+      <a href="#craft">The App</a>
+      <a href="#dashboard">The Dashboard</a>
+      <a class="members" href="${dashLink}">${user ? 'Dashboard' : 'Members'}</a>
+    </nav>
+  </div></div>
+
+  <div class="hud"><div class="hud-card" id="hud">
+    <div class="hud-status" id="hud-status">Ball locked</div>
     <div class="hud-row"><span class="k">Ball speed</span><span class="v" id="hud-speed">—</span></div>
     <div class="hud-row"><span class="k">Launch</span><span class="v" id="hud-launch">—</span></div>
     <div class="hud-row"><span class="k">Carry</span><span class="v" id="hud-carry">—</span></div>
     <div class="hud-score" id="hud-score"></div>
-  </div></div></div>
-  <div class="brand"><div class="wrap">
-    <b>ShotArc</b>
-    <nav><a href="#how">How it works</a><a href="#dashboard">Dashboard</a><a href="${dashLink}">${dashLabel}</a></nav>
   </div></div>
-  <div class="hero-content"><div class="wrap">
-    <h1>See every shot <span class="y">fly.</span></h1>
-    <p class="lede">Stand your phone behind the ball. ShotArc tracks it off the face, draws the
-      arc, and tells you the speed, launch, carry and a score for the strike — indoors or out.</p>
-    <div class="cta">
-      <a class="btn" href="/install">↓ Download the app<span class="meta" style="color:#0c1005cc">&nbsp;· ${size}</span></a>
-      <a class="btn ghost" href="${dashLink}">${dashLabel}</a>
+
+  <div class="hero-body"><div class="wrap">
+    <p class="eyebrow">Precision ball tracking</p>
+    <h1>Read the flight of <em>every</em> shot.</h1>
+    <p class="lead">Stand your phone behind the ball. ShotArc follows it off the face, traces the
+      line, and reads back ball speed, launch, carry and the quality of the strike.</p>
+    <div class="hero-cta">
+      <a class="btn on-dark" href="/install">Download the app${size ? ` · ${size}` : ''}</a>
+      <a class="tlink on-dark" href="${dashLink}">${user ? 'Enter the dashboard' : 'Members entrance'} <span class="arrow">→</span></a>
     </div>
-    <p class="meta" style="margin-top:12px">Android · sideload · ${apk ? 'free' : ''}</p>
   </div></div>
 </header>
 
-<section id="how"><div class="wrap">
-  <h2>Three things, no gadgets</h2>
-  <p class="sub">No launch monitor, no sensors on the club. Just the camera you already carry.</p>
+<section class="statement"><div class="wrap">
+  <p class="eyebrow">No gadgets</p>
+  <h2>No launch monitor. No sensors on the club. <em>Just the camera in your bag.</em></h2>
+  <p class="lead">The measurement most players never had access to, from the phone already in your pocket —
+    on the range at dawn, in the bay in winter, or standing on your own back garden.</p>
+</div></section>
+
+<section id="craft" style="background:var(--paper-2)"><div class="wrap">
+  <p class="eyebrow">How it plays</p>
+  <h2>Three unhurried steps.</h2>
   <div class="steps">
-    <div class="step"><div class="n">1</div><h3>Set up behind</h3>
-      <p>Prop the phone on the ground or a tripod, a couple of metres behind the ball, down the target line.</p></div>
-    <div class="step"><div class="n">2</div><h3>Swing</h3>
-      <p>ShotArc locks onto the ball on the grass, then follows it into flight and traces the arc live.</p></div>
-    <div class="step"><div class="n">3</div><h3>Read the shot</h3>
-      <p>Ball speed, launch angle, start line, carry and a score — plus, on a course, where it lands and your tally against par.</p></div>
+    <div class="step"><div class="num">01</div><div class="body">
+      <h3>Set the phone behind</h3>
+      <p>On the ground or a tripod, a couple of paces behind the ball and down the target line. Nothing to pair, nothing to charge.</p>
+    </div></div>
+    <div class="step"><div class="num">02</div><div class="body">
+      <h3>Play your shot</h3>
+      <p>ShotArc finds the ball at rest on the grass, then follows it into flight and draws the arc as it climbs — indoors into a net, or out to the horizon.</p>
+    </div></div>
+    <div class="step"><div class="num">03</div><div class="body">
+      <h3>Read the number</h3>
+      <p>Ball speed, launch, start line, carry and a score for the strike. On a course, where it comes to rest and your standing against par.</p>
+    </div></div>
+  </div>
+  <div class="measures">
+    <span>Ball speed</span><span>Launch angle</span><span>Start line</span><span>Carry</span><span>Shot score</span>
   </div>
 </div></section>
 
 <section id="dashboard" class="dash"><div class="wrap">
-  <h2>Your whole round, afterwards</h2>
-  <p class="sub">Every session syncs to your dashboard: shot paths down each hole, flight profiles,
-    longest drive, fastest ball and your score. Log in to see yours.</p>
-  <div class="frame">
-    <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
-      <span class="url">shotarc.co.za/dashboard</span></div>
-    <div class="frame-body">${preview}</div>
+  <p class="eyebrow">Afterwards</p>
+  <h2>Every round, kept.</h2>
+  <p class="lead measure">Each session syncs to a private dashboard: the shape of every shot down each
+    hole, its flight in profile, your longest of the day and your score. Yours to revisit.</p>
+  <div class="plate">
+    <div class="plate-bar"><i></i><i></i><i></i><span class="u">shotarc.co.za / dashboard</span></div>
+    <div class="plate-body">${preview}</div>
   </div>
-  <div class="dash-cta">
-    <a class="btn" href="${dashLink}">${dashLabel}</a>
-    <a class="btn ghost" href="/install">↓ Download the app</a>
+  <p class="caption">A sample round. Your dashboard opens with the Members link.</p>
+</div></section>
+
+<section class="closing"><div class="wrap">
+  <p class="eyebrow" style="color:var(--brass-lite)">Begin</p>
+  <h2>Take the measure of your game.</h2>
+  <p class="lead">Free to use. Android, sideloaded from here. The camera is all it needs.</p>
+  <div class="hero-cta">
+    <a class="btn on-dark" href="/install">Download the app${size ? ` · ${size}` : ''}</a>
+    <a class="tlink on-dark" href="${dashLink}">${user ? 'Enter the dashboard' : 'Members entrance'} <span class="arrow">→</span></a>
   </div>
 </div></section>
 
-<section class="install"><div class="wrap">
-  <h2>Installing it</h2>
-  <ol>
-    <li>Tap <b>Download the app</b>. Chrome warns about any APK that is not from Play — that is expected.</li>
-    <li>Open the downloaded file. Android asks to allow installs from your browser this once; turn it on and continue.</li>
-    <li>Allow the camera when ShotArc first asks. That is all it needs.</li>
-  </ol>
-</div></section>
-
-<footer><div class="wrap">
-  © ShotArc · Course data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, ODbL.
-  Flight and landing are modelled from the measured launch.
+<footer class="foot"><div class="wrap">
+  <a class="mark" href="/" style="color:var(--cream)">ShotArc<span style="color:var(--brass-lite)">.</span></a>
+  <p class="fine">Course data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, ODbL.
+    Flight and landing are modelled from the measured launch, not observed after it leaves frame.</p>
 </div></footer>
 
 <script src="/assets/three.min.js?v=${assetV()}"></script>
@@ -312,27 +336,31 @@ export function renderLogin({ next, error }) {
   const nextField = next ? `<input type="hidden" name="next" value="${escape(next)}">` : ''
   return `<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ShotArc — log in</title><link rel="stylesheet" href="/assets/site.css?v=${assetV()}">
+<title>ShotArc — members</title><link rel="stylesheet" href="/assets/site.css?v=${assetV()}">
 <style>
- body{display:flex;min-height:100svh;align-items:center;justify-content:center;padding:24px}
- .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:30px;width:min(24rem,100%)}
- .card b{color:var(--accent);font-size:1.1rem}
- label{display:block;color:var(--muted);font-size:.85rem;margin:16px 0 6px}
- input{width:100%;background:#0e150f;border:1px solid var(--line);border-radius:10px;
-   padding:12px 14px;color:var(--ink);font-size:1rem}
- button{width:100%;margin-top:20px;background:var(--accent);color:#0c1005;font-weight:700;
-   border:0;border-radius:11px;padding:13px;font-size:1rem;cursor:pointer}
- .err{color:var(--warn);font-size:.9rem;margin-top:14px}
- .back{display:block;text-align:center;margin-top:16px;color:#8ea394;font-size:.9rem}
+ body{background:var(--pine);color:var(--cream);display:flex;min-height:100svh;align-items:center;justify-content:center;padding:24px}
+ .card{width:min(25rem,100%)}
+ .card .eyebrow{color:var(--brass-lite)}
+ .card h1{color:var(--cream);font-size:2.4rem;margin:0 0 6px}
+ .card p.sub{color:#c3ccbe;margin:0 0 26px}
+ label{display:block;color:var(--cream-soft);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;margin:18px 0 8px}
+ input{width:100%;background:rgba(236,230,214,.06);border:1px solid var(--line-cream);border-radius:3px;
+   padding:13px 15px;color:var(--cream);font-size:1rem;font-family:var(--sans)}
+ input:focus{outline:none;border-color:var(--brass-lite)}
+ .btn{width:100%;justify-content:center;margin-top:26px}
+ .err{color:#e2a08f;font-size:.9rem;margin-top:16px}
+ .back{display:block;text-align:center;margin-top:20px;color:var(--cream-soft);font-size:.85rem}
+ .back:hover{color:var(--cream)}
 </style></head><body>
 <form class="card" method="post" action="/login">
-  <b>ShotArc</b>
-  <p style="color:var(--muted);margin:.4rem 0 0">Log in to your dashboard.</p>
+  <p class="eyebrow">ShotArc</p>
+  <h1 class="serif">Members</h1>
+  <p class="sub">Sign in to your dashboard.</p>
   ${nextField}
   <label>Username</label><input name="username" autocomplete="username" autofocus>
   <label>Password</label><input name="password" type="password" autocomplete="current-password">
   ${error ? `<div class="err">${escape(error)}</div>` : ''}
-  <button type="submit">Log in</button>
+  <button class="btn on-dark" type="submit">Sign in</button>
   <a class="back" href="/">← Back to shotarc.co.za</a>
 </form></body></html>`
 }
@@ -377,41 +405,37 @@ export function renderInstall(apk) {
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ShotArc — get the app</title><link rel="stylesheet" href="/assets/site.css?v=${assetV()}">
 <style>
- body{display:flex;min-height:100svh;align-items:center;justify-content:center;padding:28px}
- .card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:34px;width:min(30rem,100%)}
- .card b{color:var(--accent);font-size:1.15rem}
- h1{font-size:1.6rem;margin:.4rem 0 .2rem}
- .dl{display:block;text-align:center;background:var(--accent);color:#0c1005;font-weight:800;
-   font-size:1.1rem;padding:16px;border-radius:13px;margin:20px 0 6px}
- .meta{color:var(--muted);font-size:.85rem;text-align:center}
- ol{color:var(--muted);padding-left:20px;margin-top:22px}
- li{margin:.55rem 0}
- .note{background:#0e150f;border:1px solid var(--line);border-radius:11px;padding:12px 14px;
-   color:#cfe3d4;font-size:.9rem;margin-top:18px}
- .back{display:block;text-align:center;margin-top:20px;color:#8ea394;font-size:.9rem}
+ body{background:var(--pine);color:var(--cream);display:flex;min-height:100svh;align-items:center;justify-content:center;padding:28px}
+ .card{width:min(31rem,100%)}
+ .card .eyebrow{color:var(--brass-lite)}
+ .card h1{color:var(--cream);font-size:2.6rem;margin:0 0 6px}
+ .dl{display:flex;justify-content:center;margin:26px 0 8px;width:100%}
+ .dl .btn{width:100%;justify-content:center;font-size:1.05rem;padding:17px}
+ .hint{color:var(--cream-soft);font-size:.86rem;text-align:center}
+ .hint a{color:var(--brass-lite);border-bottom:1px solid var(--line-cream)}
+ ol{color:#c3ccbe;padding-left:20px;margin-top:26px;line-height:1.7}
+ ol b{color:var(--cream)}
+ .note{border-left:2px solid var(--brass);padding:12px 16px;color:#c3ccbe;font-size:.9rem;margin-top:22px;background:rgba(236,230,214,.04)}
+ .back{display:block;text-align:center;margin-top:22px;color:var(--cream-soft);font-size:.85rem}
+ .back:hover{color:var(--cream)}
 </style></head><body>
 <main class="card">
-  <b>ShotArc</b>
-  <h1>Get the app</h1>
-  <p class="meta" style="text-align:left">Android · ${size}</p>
-  <a class="dl" id="dl" href="/golf-tracker.apk" download="shotarc.apk">↓ Download the APK</a>
-  <p class="meta">If the download does not start, <a href="/golf-tracker.apk" download="shotarc.apk">tap here</a>.</p>
+  <p class="eyebrow">Android · ${size}</p>
+  <h1 class="serif">Get the app</h1>
+  <div class="dl"><a class="btn on-dark" id="dl" href="/golf-tracker.apk" download="shotarc.apk">Download the APK</a></div>
+  <p class="hint">If it does not begin, <a href="/golf-tracker.apk" download="shotarc.apk">tap here</a>.</p>
   <ol>
-    <li>When it finishes, open the downloaded file.</li>
+    <li>When it finishes, <b>open the downloaded file</b>.</li>
     <li>Android asks to allow installs from your browser this once — turn it on and continue.</li>
     <li>Allow the camera when ShotArc first asks. That is all it needs.</li>
   </ol>
-  <div class="note">Chrome warns about any APK that is not from the Play Store — that warning is
-    expected here. Open it on an Android phone; a laptop cannot install it.</div>
+  <div class="note">Chrome flags any APK that is not from the Play Store — that warning is expected
+    here. Open it on an Android phone; a laptop cannot install it.</div>
   <a class="back" href="/">← Back to shotarc.co.za</a>
 </main>
 <script>
-  // nudge the download and give visible feedback even where the browser UI is quiet
-  var dl = document.getElementById('dl');
-  dl.addEventListener('click', function(){
-    var t = dl.textContent; dl.textContent = 'Starting download…';
-    setTimeout(function(){ dl.textContent = t; }, 2500);
-  });
+  var dl=document.getElementById('dl');
+  dl.addEventListener('click',function(){var t=dl.textContent;dl.textContent='Starting download…';setTimeout(function(){dl.textContent=t;},2500);});
 </script>
 </body></html>`
 }
