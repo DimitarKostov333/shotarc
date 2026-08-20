@@ -448,3 +448,72 @@ export function renderInstall(apk, version) {
 </script>
 </body></html>`
 }
+
+
+/** Privacy policy — required for the Play listing; states what the app actually does with data. */
+export function renderPrivacy() {
+  const updated = '21 August 2026'
+  return `<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShotArc — privacy</title>
+<link rel="icon" type="image/svg+xml" href="/assets/mark.svg">
+<link rel="stylesheet" href="/assets/site.css?v=${assetV()}">
+<style>
+ body{background:var(--paper);color:var(--ink)}
+ .doc{max-width:44rem;margin:0 auto;padding:64px 22px 96px}
+ .doc h1{font-size:clamp(2rem,5vw,3rem);margin:0 0 6px}
+ .doc .upd{color:var(--ink-soft);margin:0 0 34px}
+ .doc h2{font-size:1.3rem;margin:34px 0 10px}
+ .doc p,.doc li{color:#3a463c;line-height:1.7}
+ .doc a{color:var(--brass);border-bottom:1px solid var(--line-strong)}
+ .doc .back{display:inline-block;margin-top:40px;color:var(--ink-soft)}
+</style></head><body>
+<article class="doc">
+  <h1 class="serif">Privacy</h1>
+  <p class="upd">ShotArc · updated ${updated}</p>
+
+  <p>ShotArc is a personal golf-shot tracker. This policy explains, plainly, what it does and does
+     not do with your data.</p>
+
+  <h2>The camera</h2>
+  <p>ShotArc uses your phone's camera to watch the ball. The video is processed <strong>on your
+     device, in real time</strong>, only to find and follow the ball. Camera frames are
+     <strong>never uploaded, saved, or shared</strong> — nothing leaves the phone but the numbers
+     described below.</p>
+
+  <h2>What is collected</h2>
+  <ul>
+    <li>A random <strong>install identifier</strong> generated on your device the first time the app
+        runs. It is not linked to your name, email, phone number, or any account, and it is not an
+        advertising identifier.</li>
+    <li>Your <strong>device model and Android version</strong>, to understand what the app runs on.</li>
+    <li><strong>Shot data you record</strong>: ball speed, launch angle, start line, carry, apex,
+        score, the modelled shot path, and — if you pick a course — the hole and your score against
+        par. Course choice is something you select in the app; ShotArc does not read your GPS
+        location.</li>
+  </ul>
+
+  <h2>How it is used</h2>
+  <p>Only to show your own rounds back to you on the ShotArc dashboard. That is the entire purpose.</p>
+
+  <h2>Where it goes</h2>
+  <p>Shot data is sent to and stored on ShotArc's own server at shotarc.co.za. It is <strong>not
+     sold</strong>, and <strong>not shared</strong> with any third party. There are no advertising
+     or analytics SDKs in the app.</p>
+
+  <h2>Keeping or deleting your data</h2>
+  <p>You can ask for your data to be deleted at any time by emailing the address below; it will be
+     removed from the server.</p>
+
+  <h2>Children</h2>
+  <p>ShotArc is a general-audience sports app and is not directed at children under 13.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes, the date at the top will be updated.</p>
+
+  <h2>Contact</h2>
+  <p>Questions or deletion requests: <a href="mailto:dim2517@gmail.com">dim2517@gmail.com</a>.</p>
+
+  <a class="back" href="/">← shotarc.co.za</a>
+</article></body></html>`
+}

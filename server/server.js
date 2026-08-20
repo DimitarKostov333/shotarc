@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { dirname as pathDirname } from 'node:path'
 import { openDatabase } from './db.js'
-import { renderDashboard, renderSession, renderLanding, renderLogin, renderInstall } from './views.js'
+import { renderDashboard, renderSession, renderLanding, renderLogin, renderInstall, renderPrivacy } from './views.js'
 import { hashPassword, verifyPassword, makeSessionCookie, clearSessionCookie, currentUser, requireAuth } from './auth.js'
 
 const PORT = Number(process.env.PORT ?? 8080)
@@ -72,6 +72,8 @@ app.get('/install', (req, res) => {
   const apk = existsSync(APK_PATH) ? statSync(APK_PATH) : null
   res.type('html').send(renderInstall(apk, currentVersion()))
 })
+
+app.get('/privacy', (req, res) => res.type('html').send(renderPrivacy()))
 
 app.get('/api/version', (req, res) => {
   res.setHeader('Cache-Control', 'no-store')
