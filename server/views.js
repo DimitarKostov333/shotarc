@@ -54,8 +54,12 @@ export function renderDashboard(stats, sessions, key) {
     </tr>`
   }).join('')
 
-  return page('Golf Ball Tracker — dashboard', `
-    <h1>Golf Ball Tracker</h1>
+  return page('ShotArc — dashboard', `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <h1>ShotArc</h1>
+      <form method="post" action="/logout" style="margin:0"><button
+        style="background:none;border:1px solid #24312a;color:#8ea394;border-radius:9px;padding:6px 12px;cursor:pointer">Log out</button></form>
+    </div>
     <p class="sub">Installs, rounds and every shot the camera registered.</p>
     <div class="tiles">
       ${tile(stats.downloads, 'APK downloads')}
@@ -187,4 +191,164 @@ export function renderSession(session, shots, key) {
       <tr><th>Shot</th><th>Club</th><th>Lie</th><th>Ball speed</th><th>Launch</th><th>Offline</th>
           <th>Carry</th><th>Apex</th><th>To green</th><th>Score</th></tr>
       ${rows}</table></div>` : '<p class="empty">No shots in this session.</p>'}`)
+}
+
+
+/** Marketing landing at /, with the 3D shot preview, a live dashboard preview, and the CTAs. */
+export function renderLanding(req, apk, user) {
+  const size = apk ? `${(apk.size / 1048576).toFixed(1)} MB` : 'coming soon'
+  const dashLink = user ? '/dashboard' : '/login?next=/dashboard'
+  const dashLabel = user ? 'Open dashboard' : 'Log in'
+
+  const sample = sampleSession()
+  const preview = `
+    <div class="tiles">
+      ${tile('152 mph', 'Ball speed')}
+      ${tile('258 m', 'Longest carry')}
+      ${tile('87', 'Best shot')}
+      ${tile('+3', 'vs par')}
+    </div>
+    <div class="charts">
+      <figure class="chart">${planView(sample)}</figure>
+      <figure class="chart">${trajectoryView(sample)}</figure>
+    </div>`
+
+  return `<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShotArc — track every shot</title>
+<meta name="description" content="Track your golf ball from behind, see its flight, speed, launch and score — and your whole round on the dashboard.">
+<link rel="stylesheet" href="/assets/site.css">
+</head><body>
+<header class="hero">
+  <canvas id="scene"></canvas>
+  <div class="hero-grad"></div>
+  <div class="hud"><div class="wrap"><div class="hud-card" id="hud">
+    <div class="hud-status" id="hud-status">Ball locked — hit it</div>
+    <div class="hud-row"><span class="k">Ball speed</span><span class="v" id="hud-speed">—</span></div>
+    <div class="hud-row"><span class="k">Launch</span><span class="v" id="hud-launch">—</span></div>
+    <div class="hud-row"><span class="k">Carry</span><span class="v" id="hud-carry">—</span></div>
+    <div class="hud-score" id="hud-score"></div>
+  </div></div></div>
+  <div class="brand"><div class="wrap">
+    <b>ShotArc</b>
+    <nav><a href="#how">How it works</a><a href="#dashboard">Dashboard</a><a href="${dashLink}">${dashLabel}</a></nav>
+  </div></div>
+  <div class="hero-content"><div class="wrap">
+    <h1>See every shot <span class="y">fly.</span></h1>
+    <p class="lede">Stand your phone behind the ball. ShotArc tracks it off the face, draws the
+      arc, and tells you the speed, launch, carry and a score for the strike — indoors or out.</p>
+    <div class="cta">
+      <a class="btn" href="/golf-tracker.apk">↓ Download the app<span class="meta" style="color:#0c1005cc">&nbsp;· ${size}</span></a>
+      <a class="btn ghost" href="${dashLink}">${dashLabel}</a>
+    </div>
+    <p class="meta" style="margin-top:12px">Android · sideload · ${apk ? 'free' : ''}</p>
+  </div></div>
+</header>
+
+<section id="how"><div class="wrap">
+  <h2>Three things, no gadgets</h2>
+  <p class="sub">No launch monitor, no sensors on the club. Just the camera you already carry.</p>
+  <div class="steps">
+    <div class="step"><div class="n">1</div><h3>Set up behind</h3>
+      <p>Prop the phone on the ground or a tripod, a couple of metres behind the ball, down the target line.</p></div>
+    <div class="step"><div class="n">2</div><h3>Swing</h3>
+      <p>ShotArc locks onto the ball on the grass, then follows it into flight and traces the arc live.</p></div>
+    <div class="step"><div class="n">3</div><h3>Read the shot</h3>
+      <p>Ball speed, launch angle, start line, carry and a score — plus, on a course, where it lands and your tally against par.</p></div>
+  </div>
+</div></section>
+
+<section id="dashboard" class="dash"><div class="wrap">
+  <h2>Your whole round, afterwards</h2>
+  <p class="sub">Every session syncs to your dashboard: shot paths down each hole, flight profiles,
+    longest drive, fastest ball and your score. Log in to see yours.</p>
+  <div class="frame">
+    <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      <span class="url">shotarc.co.za/dashboard</span></div>
+    <div class="frame-body">${preview}</div>
+  </div>
+  <div class="dash-cta">
+    <a class="btn" href="${dashLink}">${dashLabel}</a>
+    <a class="btn ghost" href="/golf-tracker.apk">↓ Download the app</a>
+  </div>
+</div></section>
+
+<section class="install"><div class="wrap">
+  <h2>Installing it</h2>
+  <ol>
+    <li>Tap <b>Download the app</b>. Chrome warns about any APK that is not from Play — that is expected.</li>
+    <li>Open the downloaded file. Android asks to allow installs from your browser this once; turn it on and continue.</li>
+    <li>Allow the camera when ShotArc first asks. That is all it needs.</li>
+  </ol>
+</div></section>
+
+<footer><div class="wrap">
+  © ShotArc · Course data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, ODbL.
+  Flight and landing are modelled from the measured launch.
+</div></footer>
+
+<script src="/assets/three.min.js"></script>
+<script src="/assets/scene.js"></script>
+</body></html>`
+}
+
+export function renderLogin({ next, error }) {
+  const nextField = next ? `<input type="hidden" name="next" value="${escape(next)}">` : ''
+  return `<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShotArc — log in</title><link rel="stylesheet" href="/assets/site.css">
+<style>
+ body{display:flex;min-height:100svh;align-items:center;justify-content:center;padding:24px}
+ .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:30px;width:min(24rem,100%)}
+ .card b{color:var(--accent);font-size:1.1rem}
+ label{display:block;color:var(--muted);font-size:.85rem;margin:16px 0 6px}
+ input{width:100%;background:#0e150f;border:1px solid var(--line);border-radius:10px;
+   padding:12px 14px;color:var(--ink);font-size:1rem}
+ button{width:100%;margin-top:20px;background:var(--accent);color:#0c1005;font-weight:700;
+   border:0;border-radius:11px;padding:13px;font-size:1rem;cursor:pointer}
+ .err{color:var(--warn);font-size:.9rem;margin-top:14px}
+ .back{display:block;text-align:center;margin-top:16px;color:#8ea394;font-size:.9rem}
+</style></head><body>
+<form class="card" method="post" action="/login">
+  <b>ShotArc</b>
+  <p style="color:var(--muted);margin:.4rem 0 0">Log in to your dashboard.</p>
+  ${nextField}
+  <label>Username</label><input name="username" autocomplete="username" autofocus>
+  <label>Password</label><input name="password" type="password" autocomplete="current-password">
+  ${error ? `<div class="err">${escape(error)}</div>` : ''}
+  <button type="submit">Log in</button>
+  <a class="back" href="/">← Back to shotarc.co.za</a>
+</form></body></html>`
+}
+
+/** A believable six-hole sample for the landing's dashboard preview (not real player data). */
+function sampleSession() {
+  const base = { from_lat: -26.05, from_lon: 28.03 }
+  const shots = []
+  const holes = [
+    [[64, 12.8, 2.1, 'DRIVER', 221, 31], [49, 19.4, -1.2, 'MID_IRON', 149, 27]],
+    [[62, 14.1, -5.4, 'DRIVER', 205, 29], [44, 22, 1.1, 'SHORT_IRON', 121, 25], [31, 29, 0.4, 'WEDGE', 88, 19]],
+    [[46, 23.8, 0.8, 'SHORT_IRON', 131, 26]],
+    [[66, 11.9, 1.0, 'DRIVER', 238, 30], [47, 20.5, -2.0, 'MID_IRON', 141, 26]],
+    [[59, 15.2, 7.8, 'DRIVER', 198, 28], [52, 17, -3.1, 'LONG_IRON', 165, 27]],
+    [[67, 12.2, -0.6, 'DRIVER', 249, 31], [62, 11.4, 2.4, 'FAIRWAY_WOOD', 210, 24], [34, 30.5, -0.9, 'WEDGE', 90, 20]],
+  ]
+  let lat = base.from_lat, lon = base.from_lon
+  holes.forEach((hole, h) => {
+    let tlat = lat, tlon = lon
+    hole.forEach(([speed, launch, offline, club, carry, apex], i) => {
+      const toLat = tlat + carry / 111320 * 0.9
+      const toLon = tlon + (offline * carry / 60) / (111320 * Math.cos(tlat * Math.PI / 180))
+      shots.push({
+        hole: h + 1, shot_number: i + 1, club,
+        ball_speed_ms: speed, launch_deg: launch, offline_deg: offline,
+        carry_m: carry, apex_m: apex, score: Math.max(40, Math.round(95 - Math.abs(offline) * 5)),
+        from_lat: tlat, from_lon: tlon, to_lat: toLat, to_lon: toLon, to_green_m: 0,
+        track: Array.from({ length: 9 }, (_, k) => { const f = k / 8; return [Math.round(carry * f), Math.round(apex * 4 * f * (1 - f)) / 1] }),
+      })
+      tlat = toLat; tlon = toLon
+    })
+    lat += 0.004; lon += 0.0025
+  })
+  return shots
 }

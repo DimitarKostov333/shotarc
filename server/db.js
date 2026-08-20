@@ -7,6 +7,12 @@ export function openDatabase(file) {
   const db = new Database(file)
   db.pragma('journal_mode = WAL')
   db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      username TEXT PRIMARY KEY,
+      password_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS installs (
       install_id TEXT PRIMARY KEY,
       first_seen TEXT NOT NULL,

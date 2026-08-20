@@ -1,9 +1,12 @@
 import express from 'express'
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { existsSync, statSync, createReadStream } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { dirname as pathDirname } from 'node:path'
 import { openDatabase } from './db.js'
-import { renderDashboard, renderSession } from './views.js'
+import { renderDashboard, renderSession, renderLanding, renderLogin } from './views.js'
+import { hashPassword, verifyPassword, makeSessionCookie, clearSessionCookie, currentUser, requireAuth } from './auth.js'
 
 const PORT = Number(process.env.PORT ?? 8080)
 const BIND = process.env.BIND ?? '127.0.0.1'
@@ -11,12 +14,29 @@ const DATA_DIR = process.env.DATA_DIR ?? './data'
 const APK_PATH = process.env.APK_PATH ?? join(DATA_DIR, 'golf-tracker.apk')
 const INGEST_KEY = process.env.INGEST_KEY ?? ''
 const DASHBOARD_KEY = process.env.DASHBOARD_KEY ?? ''
+// Cookies stay valid across restarts because the secret is stable (derived from the dashboard key
+// unless one is given explicitly).
+const SESSION_SECRET = process.env.SESSION_SECRET || DASHBOARD_KEY || 'shotarc-dev-secret'
+const PUBLIC_DIR = pathDirname(fileURLToPath(import.meta.url)) + '/public'
 
 const db = openDatabase(join(DATA_DIR, 'golf.db'))
+
+// Seed the first dashboard account from the environment, so a fresh box has a way in.
+if (process.env.ADMIN_USER && process.env.ADMIN_PASSWORD) {
+  const exists = db.prepare('SELECT 1 FROM users WHERE username = ?').get(process.env.ADMIN_USER)
+  if (!exists) {
+    db.prepare('INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)')
+      .run(process.env.ADMIN_USER, hashPassword(process.env.ADMIN_PASSWORD), new Date().toISOString())
+    console.log(`seeded dashboard account: ${process.env.ADMIN_USER}`)
+  }
+}
+
 const app = express()
 app.disable('x-powered-by')
 app.set('trust proxy', true)
 app.use(express.json({ limit: '2mb' }))
+app.use(express.urlencoded({ extended: false }))
+app.use('/assets', express.static(PUBLIC_DIR, { maxAge: '7d', immutable: true }))
 
 const now = () => new Date().toISOString()
 
@@ -38,10 +58,37 @@ function requireKey(configured, header) {
 
 // ---------------------------------------------------------------- the app itself
 
-app.get(['/', '/install'], (req, res) => {
+app.get('/', (req, res) => {
   const apk = existsSync(APK_PATH) ? statSync(APK_PATH) : null
-  res.type('html').send(renderInstallPage(req, apk))
+  res.type('html').send(renderLanding(req, apk, currentUser(req, SESSION_SECRET)))
 })
+
+// --- dashboard login
+
+app.get('/login', (req, res) => {
+  if (currentUser(req, SESSION_SECRET)) return res.redirect(safeNext(req.query.next))
+  res.type('html').send(renderLogin({ next: req.query.next, error: null }))
+})
+
+app.post('/login', (req, res) => {
+  const { username, password } = req.body ?? {}
+  const row = username ? db.prepare('SELECT password_hash FROM users WHERE username = ?').get(username) : null
+  if (row && verifyPassword(password ?? '', row.password_hash)) {
+    res.setHeader('Set-Cookie', makeSessionCookie(username, SESSION_SECRET, Date.now()))
+    return res.redirect(safeNext(req.body.next))
+  }
+  res.status(401).type('html').send(renderLogin({ next: req.body.next, error: 'Wrong username or password' }))
+})
+
+app.post('/logout', (req, res) => {
+  res.setHeader('Set-Cookie', clearSessionCookie())
+  res.redirect('/')
+})
+
+// only allow same-site relative redirects after login
+function safeNext(next) {
+  return typeof next === 'string' && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard'
+}
 
 app.get('/golf-tracker.apk', (req, res) => {
   if (!existsSync(APK_PATH)) return res.status(404).send('No build uploaded yet')
@@ -133,7 +180,8 @@ app.post('/api/sessions', requireKey(INGEST_KEY, 'x-ingest-key'), (req, res) => 
 
 // ---------------------------------------------------------------- reading it back
 
-const dashboardGuard = requireKey(DASHBOARD_KEY, 'x-dashboard-key')
+const dashboardGuard = requireAuth({ secret: SESSION_SECRET, dashboardKey: DASHBOARD_KEY, redirect: false })
+const dashboardPage = requireAuth({ secret: SESSION_SECRET, dashboardKey: DASHBOARD_KEY, redirect: true })
 
 app.get('/api/stats', dashboardGuard, (req, res) => res.json(stats()))
 
@@ -151,7 +199,7 @@ app.get('/api/sessions/:id', dashboardGuard, (req, res) => {
   res.json({ session, shots: shots.map(s => ({ ...s, track: s.track ? JSON.parse(s.track) : null })) })
 })
 
-app.get('/dashboard', dashboardGuard, (req, res) => {
+app.get('/dashboard', dashboardPage, (req, res) => {
   const sessions = db.prepare(`
     SELECT s.*, COUNT(sh.id) AS shots, ROUND(MAX(sh.carry_m), 1) AS longest_m
     FROM sessions s LEFT JOIN shots sh ON sh.session_id = s.session_id
@@ -160,7 +208,7 @@ app.get('/dashboard', dashboardGuard, (req, res) => {
   res.type('html').send(renderDashboard(stats(), sessions, req.query.key))
 })
 
-app.get('/dashboard/session/:id', dashboardGuard, (req, res) => {
+app.get('/dashboard/session/:id', dashboardPage, (req, res) => {
   const session = db.prepare('SELECT * FROM sessions WHERE session_id = ?').get(req.params.id)
   if (!session) return res.status(404).send('No such session')
   const shots = db.prepare('SELECT * FROM shots WHERE session_id = ? ORDER BY hole, shot_number').all(req.params.id)
@@ -182,35 +230,6 @@ function stats() {
       return d ? Math.round((i / d) * 100) : null
     })(),
   }
-}
-
-function renderInstallPage(req, apk) {
-  const base = `${req.protocol}://${req.get('host')}`
-  const size = apk ? `${(apk.size / 1048576).toFixed(1)} MB` : 'not uploaded yet'
-  const built = apk ? new Date(apk.mtime).toISOString().slice(0, 16).replace('T', ' ') : '—'
-  const digest = apk ? createHash('sha256').update(String(apk.mtimeMs + apk.size)).digest('hex').slice(0, 12) : ''
-  return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Golf Ball Tracker</title>
-<style>
- body{background:#0b0f0c;color:#e8ffe9;font:16px/1.6 system-ui,sans-serif;margin:0;padding:48px 24px;display:flex;justify-content:center}
- main{max-width:32rem}h1{color:#e8ff00;font-size:1.5rem;margin:0 0 .25rem}
- p{color:#9fb3a3}a.button{display:inline-block;background:#e8ff00;color:#101410;font-weight:700;
- padding:14px 22px;border-radius:12px;text-decoration:none;margin:18px 0}
- code{background:#131a14;padding:2px 6px;border-radius:5px}
- ol{color:#9fb3a3}li{margin:.4rem 0}
-</style>
-<main>
- <h1>Golf Ball Tracker</h1>
- <p>Android · ${size} · built ${built} ${digest ? `· build ${digest}` : ''}</p>
- <a class="button" href="/golf-tracker.apk">Download the APK</a>
- <ol>
-  <li>Tap the download. Chrome will warn that the file can harm your device — it says that about
-      every APK not from Play.</li>
-  <li>Open it. Android will ask to allow installs from this browser: turn it on, then come back.</li>
-  <li>Allow the camera when the app first asks.</li>
- </ol>
- <p>Serving from <code>${base}</code></p>
-</main>`
 }
 
 app.listen(PORT, BIND, () => console.log(`golf tracker server on ${BIND}:${PORT}`))
