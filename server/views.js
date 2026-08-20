@@ -234,6 +234,7 @@ export function renderLanding(req, apk, user) {
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ShotArc — read the flight of every shot</title>
 <meta name="description" content="Stand your phone behind the ball. ShotArc traces the flight and gives you ball speed, launch, carry and a score — then your whole round on the dashboard.">
+<link rel="icon" type="image/svg+xml" href="/assets/mark.svg?v=${assetV()}">
 <link rel="stylesheet" href="/assets/site.css?v=${assetV()}">
 </head><body>
 
@@ -242,7 +243,7 @@ export function renderLanding(req, apk, user) {
   <div class="hero-veil"></div>
 
   <div class="top"><div class="wrap">
-    <a class="mark" href="/">ShotArc<span class="dot">.</span></a>
+    <a class="mark" href="/"><img class="mark-ico" src="/assets/mark.svg?v=${assetV()}" alt="" width="30" height="30">ShotArc<span class="dot">.</span></a>
     <button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
     <nav class="nav" id="nav">
       <a href="#craft">The App</a>
@@ -323,7 +324,7 @@ export function renderLanding(req, apk, user) {
 </div></section>
 
 <footer class="foot"><div class="wrap">
-  <a class="mark" href="/" style="color:var(--cream)">ShotArc<span style="color:var(--brass-lite)">.</span></a>
+  <a class="mark" href="/" style="color:var(--cream)"><img class="mark-ico" src="/assets/mark.svg?v=${assetV()}" alt="" width="26" height="26">ShotArc<span style="color:var(--brass-lite)">.</span></a>
   <p class="fine">Course data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, ODbL.
     Flight and landing are modelled from the measured launch, not observed after it leaves frame.</p>
 </div></footer>
@@ -343,7 +344,8 @@ export function renderLogin({ next, error }) {
   const nextField = next ? `<input type="hidden" name="next" value="${escape(next)}">` : ''
   return `<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ShotArc — members</title><link rel="stylesheet" href="/assets/site.css?v=${assetV()}">
+<title>ShotArc — members</title><link rel="icon" type="image/svg+xml" href="/assets/mark.svg?v=${assetV()}">
+<link rel="stylesheet" href="/assets/site.css?v=${assetV()}">
 <style>
  body{background:var(--pine);color:var(--cream);display:flex;min-height:100svh;align-items:center;justify-content:center;padding:24px}
  .card{width:min(25rem,100%)}
@@ -410,7 +412,8 @@ export function renderInstall(apk) {
   const size = apk ? `${(apk.size / 1048576).toFixed(1)} MB` : 'coming soon'
   return `<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ShotArc — get the app</title><link rel="stylesheet" href="/assets/site.css?v=${assetV()}">
+<title>ShotArc — get the app</title><link rel="icon" type="image/svg+xml" href="/assets/mark.svg?v=${assetV()}">
+<link rel="stylesheet" href="/assets/site.css?v=${assetV()}">
 <style>
  body{background:var(--pine);color:var(--cream);display:flex;min-height:100svh;align-items:center;justify-content:center;padding:28px}
  .card{width:min(31rem,100%)}

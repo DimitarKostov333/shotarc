@@ -1,0 +1,8 @@
+<svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ShotArc">
+  <rect width="96" height="96" rx="24" fill="#0F6E56"/>
+  <g transform="translate(6.5,-4.4) scale(0.851)" fill="none" stroke="#ffffff" stroke-linecap="round">
+    <path d="M8 92 L34 92" stroke-width="6" opacity="0.5"/>
+    <path d="M16 84 Q 46 8 84 44" stroke-width="7"/>
+    <circle cx="84" cy="44" r="9.5" fill="#ffffff" stroke="none"/>
+  </g>
+</svg>
