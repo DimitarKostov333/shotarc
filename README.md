@@ -231,6 +231,12 @@ That is deliberate: temporal samples matter more than pixels here, because every
 from the first fifth of a second of flight, where the ball is still large. On a Galaxy S25 Ultra
 that means 720p at the fastest rate the sensor will give, rather than 1080p at 30.
 
+## Continuous integration
+
+Every push runs the tests and builds a debug APK; a `v*` tag builds a signed release APK and
+attaches it to a GitHub Release; a manual workflow deploys to the VPS. See
+[.github/README.md](.github/README.md) for the workflows and the secrets they need.
+
 ## Tests
 
 ```bash
