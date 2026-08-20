@@ -66,10 +66,7 @@ class SetupActivity : AppCompatActivity() {
                 ballCarousel()
             }
             2 -> ask(R.string.what_light) {
-                options(TimeOfDay.entries.map { it.label }) { picked ->
-                    time = TimeOfDay.entries[picked]
-                    if (environment == Environment.OUTDOORS) showStep(3) else start()
-                }
+                timeCards()
             }
             3 -> ask(R.string.which_course) {
                 val labels = listOf(getString(R.string.no_course)) +
@@ -151,59 +148,70 @@ class SetupActivity : AppCompatActivity() {
 
     private val dp get() = resources.displayMetrics.density
 
-    /** Two illustrated cards: a course for outdoors, a driving-range bay for indoors. */
-    private fun environmentCards() {
-        data class Choice(val env: Environment, val image: Int, val title: String, val sub: String)
-        val choices = listOf(
-            Choice(Environment.OUTDOORS, R.drawable.photo_course, "Outdoors", "On the course or the range"),
-            Choice(Environment.INDOORS, R.drawable.photo_range, "Indoors", "A bay or a net at home"),
-        )
-        for (c in choices) {
-            val card = MaterialCardView(this).apply {
-                radius = 18 * dp
-                cardElevation = 4 * dp
-                strokeWidth = 0
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, (168 * dp).toInt()
-                ).also { it.bottomMargin = (14 * dp).toInt() }
-                isClickable = true
-                setOnClickListener {
-                    environment = c.env
-                    showStep(1)
-                }
-            }
-            val frame = FrameLayout(this)
-            frame.addView(ImageView(this).apply {
-                setImageResource(c.image)
-                scaleType = ImageView.ScaleType.CENTER_CROP
-                layoutParams = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
-                )
-            })
-            frame.addView(View(this).apply {
-                setBackgroundResource(R.drawable.scrim_bottom)
-                layoutParams = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
-                )
-            })
-            val text = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding((18 * dp).toInt(), 0, (18 * dp).toInt(), (16 * dp).toInt())
-                layoutParams = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM
-                )
-            }
-            text.addView(TextView(this).apply {
-                this.text = c.title; setTextColor(0xFFFFFFFF.toInt()); textSize = 22f
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
-            })
-            text.addView(TextView(this).apply {
-                this.text = c.sub; setTextColor(0xCCFFFFFF.toInt()); textSize = 13f
-            })
-            frame.addView(text)
-            card.addView(frame)
-            binding.options.addView(card)
+    /** A full-bleed photo card with a title + subtitle, used by the environment and time steps. */
+    private fun addImageCard(image: Int, title: String, sub: String, onClick: () -> Unit) {
+        val card = MaterialCardView(this).apply {
+            radius = 18 * dp
+            cardElevation = 4 * dp
+            strokeWidth = 0
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, (150 * dp).toInt()
+            ).also { it.bottomMargin = (14 * dp).toInt() }
+            isClickable = true
+            setOnClickListener { onClick() }
         }
+        val frame = FrameLayout(this)
+        frame.addView(ImageView(this).apply {
+            setImageResource(image)
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        })
+        frame.addView(View(this).apply {
+            setBackgroundResource(R.drawable.scrim_bottom)
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        })
+        val text = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((18 * dp).toInt(), 0, (18 * dp).toInt(), (15 * dp).toInt())
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM
+            )
+        }
+        text.addView(TextView(this).apply {
+            this.text = title; setTextColor(0xFFFFFFFF.toInt()); textSize = 21f
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        })
+        text.addView(TextView(this).apply {
+            this.text = sub; setTextColor(0xCCFFFFFF.toInt()); textSize = 13f
+        })
+        frame.addView(text)
+        card.addView(frame)
+        binding.options.addView(card)
+    }
+
+    /** A course for outdoors, a driving-range bay for indoors. */
+    private fun environmentCards() {
+        addImageCard(R.drawable.photo_course, "Outdoors", "On the course or the range") {
+            environment = Environment.OUTDOORS; showStep(1)
+        }
+        addImageCard(R.drawable.photo_range, "Indoors", "A bay or a net at home") {
+            environment = Environment.INDOORS; showStep(1)
+        }
+    }
+
+    /** Three photo cards for the light you are playing in. */
+    private fun timeCards() {
+        val advance: (TimeOfDay) -> Unit = { t ->
+            time = t
+            if (environment == Environment.OUTDOORS) showStep(3) else start()
+        }
+        addImageCard(R.drawable.photo_morning, "Morning", "Low, warm light") { advance(TimeOfDay.MORNING) }
+        addImageCard(R.drawable.photo_noon, "Noon", "Bright, overhead sun") { advance(TimeOfDay.NOON) }
+        addImageCard(R.drawable.photo_night, "Night", "Floodlit or after dark") { advance(TimeOfDay.NIGHT) }
     }
 
     /** A golf ball you can swipe through the colours, spinning as it goes. */
