@@ -16,6 +16,7 @@ data class ShotRecord(
     val to: LatLon,
     val toGreenM: Double,
     val profile: List<DoubleArray>,
+    val hangTimeS: Double,
     val score: Int,
 )
 
@@ -71,6 +72,7 @@ class Round(val course: Course) {
             to = struck,
             toGreenM = struck.metresTo(hole.green),
             profile = landing.profile,
+            hangTimeS = landing.hangTimeS,
             score = metrics.score,
         )
         _shots.add(record)

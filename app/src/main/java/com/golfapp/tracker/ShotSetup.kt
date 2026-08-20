@@ -63,5 +63,14 @@ data class ShotSetup(val club: Club, val lie: Lie) {
         return (100 * (0.4 * straight + 0.3 * launch + 0.3 * speed)).toInt().coerceIn(0, 100)
     }
 
+    /** The three weighted components behind [score], each 0..1, for the result bars. */
+    fun scoreBreakdown(speedMs: Double, launchDeg: Double, offlineDeg: Double): FloatArray {
+        val straight = 1.0 - min(1.0, abs(offlineDeg) / 10.0)
+        val off = launchDeg - idealLaunchDeg
+        val launch = exp(-(off * off) / (2 * launchSpreadDeg * launchSpreadDeg))
+        val speed = min(1.0, speedMs / expectedSpeedMs)
+        return floatArrayOf(straight.toFloat(), launch.toFloat(), speed.toFloat())
+    }
+
     fun describe() = "${club.label} from ${lie.label.lowercase()}"
 }

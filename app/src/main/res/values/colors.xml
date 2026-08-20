@@ -1,6 +1,20 @@
 <resources>
     <color name="black">#FF000000</color>
+    <color name="ground">#FF0B100C</color>
     <color name="white">#FFFFFFFF</color>
     <color name="ball_yellow">#FFE8FF00</color>
-    <color name="scrim">#99000000</color>
+    <color name="brand_green">#FF0F6E56</color>
+    <color name="brand_green_deep">#FF0C5745</color>
+    <color name="fairway">#FF123F2F</color>
+    <color name="fairway_dark">#FF0D160F</color>
+    <color name="green_putting">#FF1C6D4E</color>
+    <color name="lock_green">#FF78FFA0</color>
+    <color name="on_ground_70">#B3FFFFFF</color>
+    <color name="on_ground_55">#8CFFFFFF</color>
+    <color name="on_ground_45">#73FFFFFF</color>
+    <color name="hairline">#1AFFFFFF</color>
+    <color name="hairline_soft">#12FFFFFF</color>
+    <color name="panel_scrim">#8C000000</color>
+    <color name="yellow_wash">#0FE8FF00</color>
+    <color name="scrim">#8C000000</color>
 </resources>

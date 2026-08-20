@@ -11,7 +11,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.animation.ValueAnimator
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.view.animation.DecelerateInterpolator
+import android.widget.LinearLayout
 import android.widget.SeekBar
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.camera2.interop.Camera2CameraInfo
@@ -183,10 +189,14 @@ class MainActivity : AppCompatActivity() {
         ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, items)
 
     /** The preview runs edge to edge; only the two panels move clear of the system bars. */
+    private var topInset = 0
+    private var bottomInset = 0
     private fun applyInsets() {
         val gap = (12 * resources.displayMetrics.density).toInt()
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            topInset = bars.top
+            bottomInset = bars.bottom
             binding.statusText.updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = bars.top + gap }
             binding.controls.updateLayoutParams<ViewGroup.MarginLayoutParams> { bottomMargin = bars.bottom + gap }
             insets
@@ -315,56 +325,187 @@ class MainActivity : AppCompatActivity() {
                 telemetry.push(session, course, round, shotLog)
                 if (telemetry.enabled) binding.syncButton.visibility = View.VISIBLE
                 showHole()
+                buildResult(metrics, lastShot)
+                showResultChrome(false)
                 binding.resultPanel.visibility = View.VISIBLE
-                binding.scoreText.text = getString(R.string.score_format, metrics.score, metrics.grade)
-                binding.resultText.text = describe(metrics)
             }
         }
     }
 
-    private fun describe(m: ShotMetrics): String {
-        val side = when {
-            abs(m.offlineDeg) < 1.0 -> "straight"
-            m.offlineDeg > 0 -> String.format("%.1f° right", m.offlineDeg)
-            else -> String.format("%.1f° left", -m.offlineDeg)
+    private val gd get() = resources.displayMetrics.density
+    private fun gdp(v: Float) = (v * gd).toInt()
+
+    private val cGround = 0xFF0B100C.toInt()
+    private val cYellow = 0xFFE8FF00.toInt()
+    private val cWhite = 0xFFFFFFFF.toInt()
+    private val cOn70 = 0xB3FFFFFF.toInt()
+    private val cOn55 = 0x8CFFFFFF.toInt()
+    private val cHair = 0x1AFFFFFF.toInt()
+
+    private fun tv(text: String, sizeSp: Float, color: Int, face: Typeface, spacing: Float = 0f): TextView =
+        TextView(this).apply {
+            this.text = text; textSize = sizeSp; setTextColor(color); typeface = face
+            if (spacing != 0f) letterSpacing = spacing
         }
-        val shape = when {
-            abs(m.curveDeg) < 1.0 -> "no curve"
-            m.curveDeg > 0 -> String.format("fade %.1f°", m.curveDeg)
-            else -> String.format("draw %.1f°", -m.curveDeg)
+
+    private fun mono(t: String, s: Float, c: Int, sp: Float = 0f, medium: Boolean = false) =
+        tv(t, s, c, Typeface.create(Typeface.MONOSPACE, if (medium) Typeface.BOLD else Typeface.NORMAL), sp)
+
+    private fun rob(t: String, s: Float, c: Int, medium: Boolean = false) =
+        tv(t, s, c, Typeface.create(Typeface.DEFAULT, if (medium) Typeface.BOLD else Typeface.NORMAL))
+
+    private fun serif(t: String, s: Float, c: Int, semibold: Boolean = false) =
+        tv(t, s, c, Typeface.create(Typeface.SERIF, if (semibold) Typeface.BOLD else Typeface.NORMAL))
+
+    private fun row(vararg views: View, gravity: Int = android.view.Gravity.CENTER_VERTICAL) =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; this.gravity = gravity
+            views.forEach { addView(it) }
         }
-        val speed = if (m.speedIsLowerBound) {
-            String.format("Ball speed ≈ %.0f km/h (rough)", m.ballSpeedKmh)
-        } else {
-            String.format("Ball speed %.0f km/h", m.ballSpeedKmh)
-        }
-        val apex = if (m.stillRising) {
-            String.format("Rose %.1f m before leaving frame", m.apexM)
-        } else {
-            String.format("Apex %.1f m in view", m.apexM)
-        }
-        val launchGap = m.launchAngleDeg - m.setup.idealLaunchDeg
-        val versus = when {
-            abs(launchGap) < 1.5 -> "right in the window"
-            launchGap > 0 -> String.format("%.1f° high", launchGap)
-            else -> String.format("%.1f° low", -launchGap)
-        }
-        val onCourse = lastShot?.let {
-            val side = when {
-                kotlin.math.abs(it.lateralM) < 3 -> "on line"
-                it.lateralM > 0 -> "${it.lateralM.toInt()} m right"
-                else -> "${(-it.lateralM).toInt()} m left"
+
+    /** The redesigned shot-result screen (arc hero): header, arc, score, weighted bars, metrics. */
+    private fun buildResult(m: ShotMetrics, rec: ShotRecord?) {
+        val c = binding.resultContent
+        c.removeAllViews()
+
+        // header
+        val holeLabel = round?.let { "HOLE ${it.hole.number} · PAR ${it.hole.par}" } ?: "PRACTICE"
+        val pill = mono(m.setup.describe().uppercase(), 11f, cWhite, 0.06f).apply {
+            setPadding(gdp(11f), gdp(5f), gdp(11f), gdp(5f))
+            background = GradientDrawable().apply {
+                cornerRadius = gdp(999f).toFloat(); setStroke(gdp(1f), 0x38FFFFFF)
             }
-            "Carried ${it.carryM.toInt()} m, $side — ${it.toGreenM.toInt()} m to the green"
         }
-        return listOfNotNull(
-            onCourse,
-            speed,
-            String.format("Launch %.1f°, start %s", m.launchAngleDeg, side),
-            "Shape: $shape",
-            apex,
-            "${m.setup.describe()} — launch $versus",
-            String.format("%d samples over %.2f s", m.samples, m.flightSeconds),
-        ).joinToString("\n")
+        val header = row(
+            mono(holeLabel, 11f, cOn55, 0.14f).apply {
+                layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
+            },
+            pill,
+        ).apply { setPadding(gdp(16f), gdp(14f) + topInset, gdp(16f), gdp(10f)) }
+        c.addView(header)
+
+        // arc panel
+        val arc = ResultArcView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, gdp(300f))
+                .also { it.setMargins(gdp(12f), 0, gdp(12f), 0) }
+            progress = 0f
+            setShot(m, rec)
+        }
+        c.addView(arc)
+
+        c.addView(rob("White traced = what the camera saw. Yellow = the flight model taking it from there.",
+            11f, cOn55).apply { setPadding(gdp(16f), gdp(10f), gdp(16f), gdp(4f)) })
+
+        // score block
+        if (m.speedIsLowerBound || m.stoppedEarly || m.score >= 0) {
+            val score = serif(m.score.toString(), 76f, cYellow, semibold = true)
+            val grade = serif(m.grade, 22f, cWhite)
+            val outOf = mono("OUT OF 100", 11f, cOn55, 0.12f)
+            val col = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(gdp(10f), 0, 0, 0); addView(grade); addView(outOf)
+            }
+            c.addView(row(score, col, gravity = android.view.Gravity.BOTTOM)
+                .apply { setPadding(gdp(16f), gdp(16f), gdp(16f), 0) })
+        }
+
+        // weighted bars
+        val bd = m.setup.scoreBreakdown(m.ballSpeedMs, m.launchAngleDeg, m.offlineDeg)
+        val barLabels = listOf("DIRECTION 40%", "LAUNCH 30%", "SPEED 30%")
+        val bars = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(gdp(16f), gdp(18f), gdp(16f), gdp(6f))
+        }
+        for (i in 0..2) {
+            val track = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                background = GradientDrawable().apply { cornerRadius = gdp(3f).toFloat(); setColor(0x1FFFFFFF) }
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, gdp(6f))
+                addView(View(this@MainActivity).apply {
+                    background = GradientDrawable().apply { cornerRadius = gdp(3f).toFloat(); setColor(cYellow) }
+                    layoutParams = LinearLayout.LayoutParams(0, gdp(6f), bd[i].coerceIn(0.02f, 1f))
+                })
+                addView(View(this@MainActivity).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, gdp(6f), (1f - bd[i]).coerceIn(0f, 0.98f))
+                })
+            }
+            val cell = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, -2, 1f).also { if (i > 0) it.marginStart = gdp(10f) }
+                addView(track)
+                addView(mono(barLabels[i], 9.5f, cOn55, 0.10f).apply { setPadding(0, gdp(6f), 0, 0) })
+            }
+            bars.addView(cell)
+        }
+        c.addView(bars)
+
+        // metric grid 2x2
+        fun cell(labelTxt: String, value: String, unit: String): LinearLayout {
+            val v = row(mono(value, 21f, cWhite, 0f, medium = true), mono(" $unit", 12f, cOn55))
+            return LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setBackgroundColor(cGround)
+                setPadding(gdp(13f), gdp(14f), gdp(13f), gdp(14f))
+                addView(mono(labelTxt, 9.5f, cOn55, 0.14f))
+                addView(v.apply { setPadding(0, gdp(4f), 0, 0) })
+            }
+        }
+        val side = if (kotlin.math.abs(m.offlineDeg) < 1) "on line"
+        else if (m.offlineDeg > 0) "%.1f right".format(m.offlineDeg) else "%.1f left".format(-m.offlineDeg)
+        val shape = if (kotlin.math.abs(m.curveDeg) < 1) "straight"
+        else if (m.curveDeg > 0) "fade %.1f".format(m.curveDeg) else "draw %.1f".format(-m.curveDeg)
+        val grid = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(cHair)
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, -2)
+                .also { it.setMargins(gdp(16f), gdp(24f), gdp(16f), 0) }
+        }
+        fun grRow(a: LinearLayout, b: LinearLayout, top: Boolean) = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, -2)
+                .also { if (top) it.topMargin = gdp(1f) }
+            addView(a, LinearLayout.LayoutParams(0, -2, 1f))
+            addView(b, LinearLayout.LayoutParams(0, -2, 1f).also { it.marginStart = gdp(1f) })
+        }
+        val kmh = if (m.speedIsLowerBound) "%.0f".format(m.ballSpeedKmh) else "%.0f".format(m.ballSpeedKmh)
+        grid.addView(grRow(cell("BALL SPEED", kmh, "km/h"), cell("LAUNCH", "%.1f".format(m.launchAngleDeg), "°"), false))
+        grid.addView(grRow(cell("START", side, ""), cell("SHAPE", shape, "°"), true))
+        c.addView(grid)
+
+        // footer
+        val samples = rob("${m.samples} samples · %.2f s of flight · landing modelled".format(m.flightSeconds),
+            11f, 0x73FFFFFF).apply { layoutParams = LinearLayout.LayoutParams(0, -2, 1f) }
+        val next = mono("Next shot", 15f, cGround, 0f, medium = true).apply {
+            gravity = android.view.Gravity.CENTER
+            setPadding(gdp(22f), gdp(15f), gdp(22f), gdp(15f))
+            background = GradientDrawable().apply { cornerRadius = gdp(999f).toFloat(); setColor(cYellow) }
+            setOnClickListener { dismissResult() }
+        }
+        c.addView(row(samples, next).apply { setPadding(gdp(16f), gdp(16f), gdp(16f), gdp(8f) + bottomInset) })
+
+        // trace + count-up animation
+        ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 1050; interpolator = DecelerateInterpolator(1.4f)
+            addUpdateListener { arc.progress = it.animatedValue as Float }
+            start()
+        }
     }
+
+    private fun dismissResult() {
+        tracker?.clearResult()
+        shownMetrics = null
+        binding.resultPanel.visibility = View.GONE
+        showResultChrome(true)
+        binding.overlay.clear()
+    }
+
+    /** Hide the live HUD while the full-screen result is up. */
+    private fun showResultChrome(show: Boolean) {
+        val v = if (show) View.VISIBLE else View.GONE
+        binding.statusText.visibility = v
+        binding.controls.visibility = v
+        binding.pickers.visibility = v
+        binding.holePanel.visibility = if (show && round != null) View.VISIBLE else View.GONE
+    }
+
 }
