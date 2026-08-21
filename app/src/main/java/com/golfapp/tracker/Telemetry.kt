@@ -16,10 +16,9 @@ import java.util.concurrent.Executors
  */
 class Telemetry(context: Context, private val baseUrl: String) {
 
-    private val prefs = context.getSharedPreferences("telemetry", Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext
     private val sender = Executors.newSingleThreadExecutor()
-    private val installId: String = prefs.getString(KEY_INSTALL, null)
-        ?: UUID.randomUUID().toString().also { prefs.edit().putString(KEY_INSTALL, it).apply() }
+    private val installId: String = installId(appContext)
 
     val sessionId: String = UUID.randomUUID().toString()
     private val startedAt = iso()
@@ -44,6 +43,52 @@ class Telemetry(context: Context, private val baseUrl: String) {
                 if (json.optInt("versionCode", 0) > currentVersionCode) {
                     onNewer(json.optString("versionName", ""))
                 }
+            }
+        }
+    }
+
+    /**
+     * Claim this phone for whoever owns [code]. The dashboard issues the code; sending it back is
+     * the only thing that tells the server whose rounds these are. Calls back off the main thread.
+     */
+    fun pair(code: String, onDone: (account: String?, error: String?) -> Unit) {
+        if (!enabled) { onDone(null, "This build has no dashboard to connect to."); return }
+        sender.execute {
+            val body = JSONObject().apply {
+                put("installId", installId)
+                put("code", code.trim().uppercase())
+            }
+            val result = runCatching {
+                val connection = (URL(baseUrl.trimEnd('/') + "/api/pair").openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    doOutput = true
+                    connectTimeout = 8000
+                    readTimeout = 8000
+                    setRequestProperty("Content-Type", "application/json")
+                    if (BuildConfig.INGEST_KEY.isNotEmpty()) {
+                        setRequestProperty("X-Ingest-Key", BuildConfig.INGEST_KEY)
+                    }
+                }
+                connection.outputStream.use { it.write(body.toString().toByteArray()) }
+                val status = connection.responseCode
+                val text = (if (status in 200..299) connection.inputStream else connection.errorStream)
+                    ?.bufferedReader()?.use { it.readText() }.orEmpty()
+                connection.disconnect()
+                status to text
+            }.getOrNull()
+
+            if (result == null) { onDone(null, "Could not reach shotarc.co.za. Check the connection."); return@execute }
+            val (status, text) = result
+            when (status) {
+                in 200..299 -> {
+                    val account = runCatching { JSONObject(text).optString("account") }.getOrNull().orEmpty()
+                    if (account.isEmpty()) onDone(null, "The dashboard sent an answer we could not read.")
+                    else { setPairedAccount(appContext, account); onDone(account, null) }
+                }
+                404 -> onDone(null, "That code is wrong or has expired. Reload the dashboard for a fresh one.")
+                429 -> onDone(null, "Too many tries from here. Wait a few minutes.")
+                401 -> onDone(null, "This build is not allowed to talk to that dashboard.")
+                else -> onDone(null, "The dashboard refused it (error $status).")
             }
         }
     }
@@ -140,7 +185,26 @@ class Telemetry(context: Context, private val baseUrl: String) {
             .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
             .format(java.util.Date())
 
-    private companion object {
-        const val KEY_INSTALL = "install_id"
+    companion object {
+        private const val PREFS = "telemetry"
+        private const val KEY_INSTALL = "install_id"
+        private const val KEY_ACCOUNT = "paired_account"
+
+        private fun prefs(context: Context) =
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+        /** The anonymous id this phone reports as. Made once on first run, then kept. */
+        fun installId(context: Context): String = prefs(context).let { p ->
+            p.getString(KEY_INSTALL, null)
+                ?: UUID.randomUUID().toString().also { p.edit().putString(KEY_INSTALL, it).apply() }
+        }
+
+        /** The account this phone's rounds belong to, or null while it is unpaired. */
+        fun pairedAccount(context: Context): String? =
+            prefs(context).getString(KEY_ACCOUNT, null)?.takeIf { it.isNotBlank() }
+
+        fun setPairedAccount(context: Context, account: String?) {
+            prefs(context).edit().putString(KEY_ACCOUNT, account).apply()
+        }
     }
 }

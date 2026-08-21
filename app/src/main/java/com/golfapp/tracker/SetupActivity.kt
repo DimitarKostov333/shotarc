@@ -270,6 +270,53 @@ class SetupActivity : AppCompatActivity() {
         addImageCard(R.drawable.photo_range, "Indoors", "A bay or a net at home") {
             environment = Environment.INDOORS; showStep(1)
         }
+        addAccountRow()
+    }
+
+    /**
+     * Whose dashboard this phone's rounds go to. It sits on the first step because an unpaired
+     * phone uploads into nobody's account, and there is nothing on the website to tell them so.
+     */
+    private fun addAccountRow() {
+        val account = Telemetry.pairedAccount(this)
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = 12 * dp
+                setColor(if (account == null) 0x0FE8FF00 else 0x0DFFFFFF)
+                setStroke((1 * dp).toInt(), if (account == null) 0x40E8FF00 else 0x1AFFFFFF)
+            }
+            setPadding((16 * dp).toInt(), (14 * dp).toInt(), (16 * dp).toInt(), (14 * dp).toInt())
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, -2)
+                .also { it.topMargin = (6 * dp).toInt() }
+            isClickable = true
+            setOnClickListener { startActivity(Intent(this@SetupActivity, PairActivity::class.java)) }
+        }
+        val labels = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
+        }
+        labels.addView(TextView(this).apply {
+            this.text =
+                if (account == null) getString(R.string.pair_prompt)
+                else getString(R.string.pair_linked, account)
+            textSize = 15f
+            setTextColor(if (account == null) 0xFFE8FF00.toInt() else 0xFFFFFFFF.toInt())
+        })
+        labels.addView(TextView(this).apply {
+            setText(if (account == null) R.string.pair_prompt_sub else R.string.pair_linked_sub)
+            textSize = 12.5f
+            setTextColor(0x8CFFFFFF.toInt())
+            setPadding(0, (2 * dp).toInt(), 0, 0)
+        })
+        row.addView(labels)
+        row.addView(TextView(this).apply {
+            this.text = "→"
+            textSize = 16f
+            setTextColor(if (account == null) 0xFFE8FF00.toInt() else 0x8CFFFFFF.toInt())
+        })
+        binding.options.addView(row)
     }
 
     /** Three photo cards for the light you are playing in. */

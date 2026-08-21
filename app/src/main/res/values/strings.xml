@@ -27,4 +27,20 @@
     <string name="search_courses">Search Gauteng courses…</string>
     <string name="no_course_match">No course matches that name.</string>
     <string name="update_available">Update available: v%1$s — download it again at shotarc.co.za</string>
+    <string name="pair_title">Connect to your account.</string>
+    <string name="pair_body">Rounds land on your own dashboard once this phone knows whose it is. Sign in at shotarc.co.za, and the page shows a six\u2011character code. Type it below.</string>
+    <string name="pair_body_done">This phone sends its rounds to %1$s. Enter a different code to move it to another account.</string>
+    <string name="pair_field_label">CODE FROM THE DASHBOARD</string>
+    <string name="pair_connect">Connect</string>
+    <string name="pair_skip">Not now</string>
+    <string name="pair_disconnect">Disconnect this phone</string>
+    <string name="pair_connecting">Connecting…</string>
+    <string name="pair_done">Connected. Rounds now go to %1$s.</string>
+    <string name="pair_failed">That did not work. Try again.</string>
+    <string name="pair_need_six">The code is six characters.</string>
+    <string name="pair_where">The app tracks and uploads either way — without a code the rounds simply sit on no dashboard until you enter one.</string>
+    <string name="pair_prompt">Connect to your account</string>
+    <string name="pair_prompt_sub">So your rounds reach your dashboard</string>
+    <string name="pair_linked">Rounds go to %1$s</string>
+    <string name="pair_linked_sub">Tap to change</string>
 </resources>
