@@ -59,6 +59,9 @@ class SetupActivity : AppCompatActivity() {
 
     private fun showStep(index: Int) {
         step = index
+        binding.progressRail.visibility = View.VISIBLE
+        binding.stepLabel.visibility = View.VISIBLE
+        binding.question.visibility = View.VISIBLE
         updateRail(index)
         binding.stepLabel.text = getString(R.string.step_of, (index + 1).coerceAtMost(steps), steps)
         when (index) {
@@ -80,26 +83,99 @@ class SetupActivity : AppCompatActivity() {
 
     /** The scorecard, so the holes and their pars are visible before a ball is struck. */
     private fun showCard(course: Course) {
-        binding.stepLabel.text = getString(R.string.par_total, course.par)
-        binding.question.text = course.name
+        binding.progressRail.visibility = View.GONE
+        binding.stepLabel.visibility = View.GONE
+        binding.question.visibility = View.GONE
         binding.options.removeAllViews()
-        val estimated = course.holes.count { !it.parKnown }
-        addRow(getString(R.string.card_header), bold = true)
-        for (hole in course.holes) {
-            val marked = if (hole.parKnown) "" else " *"
-            addRow("%-6s %-8s %s".format(hole.number, "par ${hole.par}$marked", "${hole.lengthM} m"))
+        val o = binding.options
+        val yellow = 0xFFE8FF00.toInt(); val white = 0xFFFFFFFF.toInt()
+
+        fun mono(t: String, s: Float, c: Int, sp: Float = 0f, medium: Boolean = false) = TextView(this).apply {
+            text = t; textSize = s; setTextColor(c)
+            typeface = android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, if (medium) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+            if (sp != 0f) letterSpacing = sp
         }
-        if (estimated > 0) addRow(getString(R.string.par_estimated, estimated))
-        addRow(CourseLibrary.ATTRIBUTION)
-        val start = MaterialButton(this).apply {
-            text = getString(R.string.start_round)
-            textSize = 17f
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).also { it.topMargin = (18 * resources.displayMetrics.density).toInt() }
+        fun serif(t: String, s: Float, c: Int) = TextView(this).apply {
+            text = t; textSize = s; setTextColor(c)
+            typeface = android.graphics.Typeface.create(android.graphics.Typeface.SERIF, android.graphics.Typeface.NORMAL)
+        }
+
+        // header on the brand-green gradient
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                intArrayOf(0xFF0F6E56.toInt(), 0xFF0C5745.toInt())
+            ).apply { cornerRadius = 18 * dp }
+            setPadding((22 * dp).toInt(), (22 * dp).toInt(), (22 * dp).toInt(), (18 * dp).toInt())
+        }
+        header.addView(mono("READY TO PLAY", 10.5f, 0xE6FFFFFF.toInt(), 0.18f))
+        header.addView(serif(course.name, 30f, white).apply { setPadding(0, (4 * dp).toInt(), 0, (14 * dp).toInt()) })
+        val length = course.holes.sumOf { it.lengthM }
+        val stats = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        fun stat(label: String, value: String) = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
+            addView(mono(label, 9.5f, 0xA6FFFFFF.toInt(), 0.1f))
+            addView(mono(value, 18f, white, 0f, true).apply { setPadding(0, (2 * dp).toInt(), 0, 0) })
+        }
+        stats.addView(stat("HOLES", "${course.holes.size}"))
+        stats.addView(stat("PAR", "${course.par}"))
+        stats.addView(stat("LENGTH", "%,d m".format(length)))
+        header.addView(stats)
+        o.addView(header, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, -2)
+            .also { it.bottomMargin = (20 * dp).toInt() })
+
+        // length chart
+        o.addView(mono("EVERY HOLE, BY LENGTH", 10.5f, 0x80FFFFFF.toInt(), 0.16f))
+        o.addView(HoleLengthChart(this).apply { holes = course.holes }
+            .also { it.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (96 * dp).toInt()).also { p -> p.topMargin = (10 * dp).toInt() } })
+        val legend = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(0, (8 * dp).toInt(), 0, (18 * dp).toInt()) }
+        listOf("PAR 3" to 0x4DFFFFFF, "PAR 4" to 0x8CFFFFFF.toInt(), "PAR 5" to yellow).forEach { (t, c) ->
+            legend.addView(View(this).apply {
+                background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 2f; setColor(c) }
+                layoutParams = LinearLayout.LayoutParams((14 * dp).toInt(), (8 * dp).toInt()).also { it.marginEnd = (6 * dp).toInt(); it.gravity = android.view.Gravity.CENTER_VERTICAL }
+            })
+            legend.addView(mono(t, 9.5f, 0x80FFFFFF.toInt(), 0.1f).apply { setPadding(0, 0, (18 * dp).toInt(), 0) })
+        }
+        o.addView(legend)
+
+        // out / in tables
+        fun column(title: String, holes: List<Hole>): LinearLayout {
+            val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, -2, 1f) }
+            val par = holes.sumOf { it.par }; val len = holes.sumOf { it.lengthM }
+            col.addView(mono("$title   PAR $par · %,d m".format(len), 9.5f, 0xA6FFFFFF.toInt(), 0.14f).apply { setPadding(0, 0, 0, (6 * dp).toInt()) })
+            for (h in holes) {
+                val r = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    setPadding(0, (6 * dp).toInt(), 0, (6 * dp).toInt())
+                    background = android.graphics.drawable.GradientDrawable().apply { setStroke((1 * dp).toInt(), 0); setColor(0) }
+                }
+                val topBorder = View(this).apply { setBackgroundColor(0x12FFFFFF); layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (1 * dp).toInt()) }
+                col.addView(topBorder)
+                r.addView(mono("${h.number}", 12.5f, 0x8CFFFFFF.toInt()).also { it.layoutParams = LinearLayout.LayoutParams(0, -2, 1f) })
+                val parStr = "${h.par}${if (h.parKnown) "" else "~"}"
+                r.addView(mono(parStr, 12.5f, if (h.par == 5) yellow else white).also { it.layoutParams = LinearLayout.LayoutParams(0, -2, 1f) })
+                r.addView(mono("${h.lengthM}", 12.5f, 0xB3FFFFFF.toInt()).apply { gravity = android.view.Gravity.END }.also { it.layoutParams = LinearLayout.LayoutParams(0, -2, 1.4f) })
+                col.addView(r)
+            }
+            return col
+        }
+        val front = course.holes.take(9); val back = course.holes.drop(9)
+        val tables = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        tables.addView(column("OUT", front))
+        if (back.isNotEmpty()) tables.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams((22 * dp).toInt(), 1) }.also {})
+        if (back.isNotEmpty()) tables.addView(column("IN", back))
+        o.addView(tables, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, -2).also { it.topMargin = (6 * dp).toInt() })
+
+        // footer
+        o.addView(mono("© OpenStreetMap contributors · ODbL", 10.5f, 0x73FFFFFF.toInt()).apply { setPadding(0, (18 * dp).toInt(), 0, 0) })
+        o.addView(MaterialButton(this).apply {
+            text = getString(R.string.start_round); textSize = 17f
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.topMargin = (12 * dp).toInt() }
+            setPadding(0, (16 * dp).toInt(), 0, (16 * dp).toInt())
             setOnClickListener { start() }
-        }
-        binding.options.addView(start as View)
+        })
     }
 
     private fun addRow(text: String, bold: Boolean = false) {
