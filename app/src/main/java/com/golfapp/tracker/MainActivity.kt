@@ -20,7 +20,9 @@ import android.graphics.drawable.GradientDrawable
 import android.view.animation.DecelerateInterpolator
 import android.widget.LinearLayout
 import android.widget.SeekBar
+import android.widget.ScrollView
 import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.camera2.interop.Camera2CameraInfo
@@ -370,10 +372,14 @@ class MainActivity : AppCompatActivity() {
             views.forEach { addView(it) }
         }
 
-    /** The redesigned shot-result screen (arc hero): header, arc, score, weighted bars, metrics. */
-    private fun buildResult(m: ShotMetrics, rec: ShotRecord?) {
-        val c = binding.resultContent
-        c.removeAllViews()
+    /** Page 1a — the arc hero: header, arc, score, weighted bars, metric grid. */
+    private fun buildArcPage(m: ShotMetrics, rec: ShotRecord?): View {
+        val scroll = ScrollView(this)
+        val c = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 0, 0, gdp(16f))
+        }
+        scroll.addView(c)
 
         // header
         val holeLabel = round?.let { "HOLE ${it.hole.number} · PAR ${it.hole.par}" } ?: "PRACTICE"
@@ -496,6 +502,108 @@ class MainActivity : AppCompatActivity() {
             addUpdateListener { arc.progress = it.animatedValue as Float }
             start()
         }
+        return scroll
+    }
+
+    /** Page 1b — top-down: header, hole map, score, detail rows. */
+    private fun buildMapPage(m: ShotMetrics, rec: ShotRecord?): View {
+        val scroll = ScrollView(this)
+        val c = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, 0, 0, gdp(16f)) }
+        scroll.addView(c)
+        val hole = round?.hole
+        val holeLabel = round?.let { "HOLE ${it.hole.number} · PAR ${it.hole.par} · ${it.hole.lengthM} m" } ?: ""
+        c.addView(row(
+            mono(holeLabel, 11f, cOn55, 0.14f).apply { layoutParams = LinearLayout.LayoutParams(0, -2, 1f) },
+            mono("SHOT ${rec?.shotNumber ?: 1}", 11f, cYellow, 0.06f),
+        ).apply { setPadding(gdp(16f), gdp(14f) + topInset, gdp(16f), gdp(10f)) })
+
+        if (hole != null) {
+            c.addView(HoleMapView(this).apply { setShot(hole, rec) }.also {
+                it.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, gdp(440f))
+                    .also { p -> p.setMargins(gdp(12f), 0, gdp(12f), 0) }
+            })
+        }
+
+        // score row
+        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(gdp(10f), 0, 0, 0)
+            addView(serif(m.grade, 13f, cWhite)) }
+        c.addView(row(serif(m.score.toString(), 46f, cYellow, semibold = true), col, gravity = android.view.Gravity.BOTTOM)
+            .apply { setPadding(gdp(16f), gdp(16f), gdp(16f), gdp(10f)) })
+
+        // detail rows
+        fun detail(labelTxt: String, value: String) {
+            c.addView(View(this).apply { setBackgroundColor(cHair); layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, gdp(1f)) })
+            c.addView(row(
+                rob(labelTxt, 13f, cOn70).apply { layoutParams = LinearLayout.LayoutParams(0, -2, 1f) },
+                mono(value, 14f, cWhite, 0f, medium = true),
+            ).apply { setPadding(gdp(16f), gdp(13f), gdp(16f), gdp(13f)) })
+        }
+        val side = if (kotlin.math.abs(m.offlineDeg) < 1) "on line" else if (m.offlineDeg > 0) "%.1f° right".format(m.offlineDeg) else "%.1f° left".format(-m.offlineDeg)
+        detail("Ball speed", "%.0f km/h".format(m.ballSpeedKmh))
+        detail("Launch", "%.1f°".format(m.launchAngleDeg))
+        detail("Start", side)
+        detail("Apex", "%.0f m".format(m.apexM))
+
+        // actions
+        val holed = mono("Holed", 15f, cWhite).apply {
+            gravity = android.view.Gravity.CENTER; setPadding(0, gdp(14f), 0, gdp(14f))
+            background = GradientDrawable().apply { cornerRadius = gdp(999f).toFloat(); setStroke(gdp(1f), 0x40FFFFFF) }
+            layoutParams = LinearLayout.LayoutParams(0, -2, 1f).also { it.marginEnd = gdp(8f) }
+            setOnClickListener { round?.holeOut(); telemetry.push(session, course, round, shotLog); dismissResult() }
+        }
+        val next = mono("Next shot", 15f, cGround, 0f, medium = true).apply {
+            gravity = android.view.Gravity.CENTER; setPadding(0, gdp(14f), 0, gdp(14f))
+            background = GradientDrawable().apply { cornerRadius = gdp(999f).toFloat(); setColor(cYellow) }
+            layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
+            setOnClickListener { dismissResult() }
+        }
+        c.addView(LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL
+            setPadding(gdp(16f), gdp(14f), gdp(16f), gdp(8f) + bottomInset); addView(holed); addView(next) })
+        return scroll
+    }
+
+    /** Build the result as a 1a/1b pager (page 2 only when a course is in play). */
+    private fun buildResult(m: ShotMetrics, rec: ShotRecord?) {
+        val pages = mutableListOf<View>(buildArcPage(m, rec))
+        if (round?.course != null) pages.add(buildMapPage(m, rec))
+        binding.resultPager.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val holder = android.widget.FrameLayout(this@MainActivity).apply {
+                    layoutParams = RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, RecyclerView.LayoutParams.MATCH_PARENT)
+                }
+                return object : RecyclerView.ViewHolder(holder) {}
+            }
+            override fun getItemCount() = pages.size
+            override fun onBindViewHolder(h: RecyclerView.ViewHolder, position: Int) {
+                (h.itemView as android.widget.FrameLayout).apply {
+                    removeAllViews(); (pages[position].parent as? android.view.ViewGroup)?.removeView(pages[position]); addView(pages[position])
+                }
+            }
+        }
+        binding.resultPager.setCurrentItem(0, false)
+        buildIndicator(pages.size)
+    }
+
+    private fun buildIndicator(count: Int) {
+        val ind = binding.resultIndicator
+        ind.removeAllViews()
+        if (count < 2) { ind.visibility = View.GONE; return }
+        ind.visibility = View.VISIBLE
+        val dots = (0 until count).map { View(this).apply {
+            background = GradientDrawable().apply { shape = GradientDrawable.OVAL }
+            layoutParams = LinearLayout.LayoutParams(gdp(6f), gdp(6f)).also { it.marginEnd = gdp(6f) }
+        } }
+        val label = mono("SIDE ON", 9.5f, cOn55, 0.14f).apply { setPadding(gdp(8f), 0, 0, 0) }
+        fun reflect(pos: Int) {
+            dots.forEachIndexed { i, dv -> (dv.background as GradientDrawable).setColor(if (i == pos) cYellow else 0x33FFFFFF) }
+            label.text = if (pos == 0) "SIDE ON" else "FROM ABOVE"
+        }
+        dots.forEach { ind.addView(it) }
+        ind.addView(label)
+        binding.resultPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) = reflect(position)
+        })
+        reflect(0)
     }
 
     private fun dismissResult() {

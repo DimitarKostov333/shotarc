@@ -105,10 +105,11 @@
             android:text="@string/holed" />
     </LinearLayout>
 
-    <ScrollView
+    <LinearLayout
         android:id="@+id/resultPanel"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:orientation="vertical"
         android:background="@color/ground"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent"
@@ -116,13 +117,21 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/resultPager"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
         <LinearLayout
-            android:id="@+id/resultContent"
+            android:id="@+id/resultIndicator"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingBottom="16dp" />
-    </ScrollView>
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingVertical="10dp"
+            android:visibility="gone" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/cueText"
