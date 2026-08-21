@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">ShotArc</string>
     <string name="reset">Reset</string>
+    <string name="summary">Session</string>
+    <string name="no_shots_yet">No shots this session yet</string>
+    <string name="share_card">Share session card</string>
     <string name="debug">Debug</string>
     <string name="sensitivity">Sensitivity</string>
     <string name="camera_permission_rationale">Camera access is needed to see the ball.</string>

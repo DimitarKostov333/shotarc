@@ -227,6 +227,13 @@
             android:visibility="gone" />
 
         <Button
+            android:id="@+id/summaryButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/summary" />
+
+        <Button
             android:id="@+id/resetButton"
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="wrap_content"

@@ -21,6 +21,13 @@ import android.view.animation.DecelerateInterpolator
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.ScrollView
+import androidx.constraintlayout.widget.ConstraintLayout
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import androidx.core.content.FileProvider
+import java.io.File
+import kotlin.math.roundToInt
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -115,6 +122,16 @@ class MainActivity : AppCompatActivity() {
             binding.resultPanel.visibility = View.GONE
             binding.overlay.clear()
         }
+        binding.summaryButton.setOnClickListener { showSummary() }
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                when {
+                    summaryCard != null -> dismissSummary()
+                    binding.resultPanel.visibility == View.VISIBLE -> dismissResult()
+                    else -> finish()
+                }
+            }
+        })
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             startCamera()
@@ -666,6 +683,130 @@ class MainActivity : AppCompatActivity() {
         binding.pickers.visibility = v
         binding.holePanel.visibility = if (show && round != null) View.VISIBLE else View.GONE
         if (!show) binding.cueText.visibility = View.GONE
+    }
+
+
+    private var summaryCard: View? = null
+
+    /** Session summary (screen 1d): stat strip, score sparkline, per-club dispersion fans. */
+    private fun showSummary() {
+        val shots = shotLog
+        if (shots.isEmpty()) {
+            android.widget.Toast.makeText(this, R.string.no_shots_yet, android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        val card = buildSummary(shots)
+        summaryCard = card
+        binding.root.addView(card, ConstraintLayout.LayoutParams(
+            ConstraintLayout.LayoutParams.MATCH_PARENT, ConstraintLayout.LayoutParams.MATCH_PARENT))
+        showResultChrome(false)
+        binding.resultPanel.visibility = View.GONE
+    }
+
+    private fun dismissSummary() {
+        summaryCard?.let { binding.root.removeView(it) }
+        summaryCard = null
+        showResultChrome(true)
+    }
+
+    private fun buildSummary(shots: List<ShotRecord>): View {
+        val scroll = ScrollView(this).apply { setBackgroundColor(cGround); isFillViewport = true }
+        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        scroll.addView(col)
+
+        val title = round?.course?.name?.let { "$it round" } ?: "Range session"
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(gdp(20f), gdp(22f) + topInset, gdp(20f), gdp(18f))
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(0xFF0F6E56.toInt(), 0xFF0A4638.toInt()))
+        }
+        header.addView(mono(if (round?.course != null) "COURSE ROUND" else "RANGE SESSION", 10.5f, cOn70, 0.18f))
+        header.addView(serif(title, 30f, cWhite, semibold = true).apply { setPadding(0, gdp(4f), 0, 0) })
+        header.addView(rob("${shots.size} shots traced", 13f, cOn70).apply { setPadding(0, gdp(2f), 0, 0) })
+        col.addView(header)
+
+        val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(gdp(20f), gdp(18f), gdp(20f), gdp(8f) + bottomInset) }
+        col.addView(body)
+
+        val avg = shots.map { it.score }.average().roundToInt()
+        val best = shots.maxOf { it.score }
+        val lateral = shots.map { it.lateralM }.average()
+        val miss = when { lateral > 4 -> "R"; lateral < -4 -> "L"; else -> "STR" }
+        body.addView(statStrip(listOf(
+            Triple("AVG SCORE", avg.toString(), cYellow),
+            Triple("BEST", best.toString(), cWhite),
+            Triple("MISS", miss, cWhite),
+        )))
+
+        body.addView(sectionLabel("SCORE, SHOT BY SHOT"))
+        body.addView(ScoreSparkView(this).apply { setScores(shots.map { it.score }) },
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, gdp(90f)))
+
+        body.addView(sectionLabel("WHERE THEY WENT"))
+        body.addView(DispersionFansView(this).apply { setShots(shots) },
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, gdp(200f)))
+
+        body.addView(rob(insightFor(shots, avg, best, miss), 13f, cOn70).apply {
+            setLineSpacing(gdp(3f).toFloat(), 1f); setPadding(0, gdp(16f), 0, gdp(4f)) })
+
+        val share = mono("Share card", 15f, cGround, medium = true).apply {
+            gravity = android.view.Gravity.CENTER; setPadding(0, gdp(14f), 0, gdp(14f))
+            background = GradientDrawable().apply { cornerRadius = gdp(999f).toFloat(); setColor(cYellow) }
+            setOnClickListener { shareCard(scroll) }
+        }
+        val done = mono("Done", 15f, cWhite, medium = true).apply {
+            gravity = android.view.Gravity.CENTER; setPadding(0, gdp(14f), 0, gdp(14f))
+            background = GradientDrawable().apply { cornerRadius = gdp(999f).toFloat(); setStroke(gdp(1f), 0x40FFFFFF) }
+            setOnClickListener { dismissSummary() }
+        }
+        body.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; setPadding(0, gdp(18f), 0, 0)
+            addView(share, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).also { it.marginEnd = gdp(10f) })
+            addView(done, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        })
+        return scroll
+    }
+
+    private fun statStrip(cells: List<Triple<String, String, Int>>): View =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            background = GradientDrawable().apply { setColor(cHair); cornerRadius = gdp(2f).toFloat() }
+            cells.forEachIndexed { i, (label, value, color) ->
+                val cell = LinearLayout(this@MainActivity).apply {
+                    orientation = LinearLayout.VERTICAL; setBackgroundColor(cGround)
+                    setPadding(gdp(14f), gdp(14f), gdp(14f), gdp(14f))
+                    addView(mono(label, 9.5f, cOn55, 0.14f))
+                    addView(serif(value, 30f, color, semibold = true).apply { setPadding(0, gdp(2f), 0, 0) })
+                }
+                addView(cell, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).also {
+                    if (i < cells.size - 1) it.marginEnd = gdp(1f)
+                })
+            }
+        }
+
+    private fun sectionLabel(text: String) = mono(text, 10.5f, cOn55, 0.16f).apply { setPadding(0, gdp(22f), 0, gdp(10f)) }
+
+    private fun insightFor(shots: List<ShotRecord>, avg: Int, best: Int, miss: String): String {
+        val longest = shots.maxByOrNull { it.carryM }
+        val side = when (miss) { "R" -> "right"; "L" -> "left"; else -> "down the middle" }
+        val carry = longest?.carryM?.roundToInt() ?: 0
+        return "You averaged $avg with a best of $best, your longest carry ${carry} m. " +
+            "The typical miss leaked $side — settle the start line and the score climbs."
+    }
+
+    private fun shareCard(view: ScrollView) {
+        val bmp = Bitmap.createBitmap(view.width, view.getChildAt(0).height, Bitmap.Config.ARGB_8888)
+        Canvas(bmp).apply { drawColor(cGround); view.getChildAt(0).draw(this) }
+        val dir = File(cacheDir, "shared").apply { mkdirs() }
+        val file = File(dir, "shotarc-session.png")
+        file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "image/png"; putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivity(Intent.createChooser(send, getString(R.string.share_card)))
     }
 
 }
