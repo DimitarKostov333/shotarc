@@ -59,6 +59,7 @@ class SetupActivity : AppCompatActivity() {
 
     private fun showStep(index: Int) {
         step = index
+        updateRail(index)
         binding.stepLabel.text = getString(R.string.step_of, (index + 1).coerceAtMost(steps), steps)
         when (index) {
             0 -> ask(R.string.where_playing) {
@@ -313,6 +314,25 @@ class SetupActivity : AppCompatActivity() {
 
     /** Course selection with a search field that filters the Gauteng list as you type. */
     private fun courseStep() {
+        val notice = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = 14 * dp; setColor(0x12E8FF00); setStroke((1 * dp).toInt(), 0x47E8FF00)
+            }
+            setPadding((14 * dp).toInt(), (12 * dp).toInt(), (14 * dp).toInt(), (12 * dp).toInt())
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { it.bottomMargin = (12 * dp).toInt() }
+            addView(TextView(this@SetupActivity).apply {
+                text = "GAUTENG ONLY, FOR NOW"; textSize = 10f; setTextColor(0xFFE8FF00.toInt())
+                typeface = android.graphics.Typeface.MONOSPACE; letterSpacing = 0.14f
+            })
+            addView(TextView(this@SetupActivity).apply {
+                text = "Only golf courses in Gauteng, South Africa can be picked for now. Anywhere else, use Practice — no course; shots are still measured and scored."
+                textSize = 12.5f; setTextColor(0xCCFFFFFF.toInt()); setPadding(0, (5 * dp).toInt(), 0, 0)
+            })
+        }
+        binding.options.addView(notice)
         val search = EditText(this).apply {
             hint = getString(R.string.search_courses)
             setHintTextColor(0x80FFFFFF.toInt())
@@ -363,6 +383,19 @@ class SetupActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
         })
         rebuild("")
+    }
+
+    /** The segmented progress rail: filled up to the current question. */
+    private fun updateRail(index: Int) {
+        val rail = binding.progressRail
+        rail.removeAllViews()
+        for (i in 0 until steps) {
+            rail.addView(View(this).apply {
+                setBackgroundColor(if (i <= index) 0xFFE8FF00.toInt() else 0x29FFFFFF)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+                    .also { if (i > 0) it.marginStart = (5 * dp).toInt() }
+            })
+        }
     }
 
     private fun start() {
