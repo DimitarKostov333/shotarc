@@ -57,7 +57,7 @@
                 android:layout_weight="1"
                 android:textColor="@color/white"
                 android:textSize="17sp"
-                android:text="@string/camera_permission_rationale" />
+                android:text="@string/starting_camera" />
         </LinearLayout>
 
         <TextView
