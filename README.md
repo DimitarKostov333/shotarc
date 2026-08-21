@@ -272,5 +272,12 @@ app/src/main/java/com/golfapp/tracker/
   ShotTracker.kt       address calibration, launch detection, association, 3D reconstruction
   TrackOverlayView.kt  path and HUD drawing, image-to-view mapping
   SetupActivity.kt     the three start-of-session questions
+  PairActivity.kt      types the dashboard's code, so rounds reach the right account
+  Telemetry.kt         the install id, pairing, and the upload after every shot
   MainActivity.kt      CameraX wiring, camera intrinsics, club and lie pickers, results panel
 ```
+
+Rounds reach a dashboard only once the phone is paired to an account. The site issues a
+six-character code; `PairActivity` posts it to `/api/pair` with the install id, and the server
+records that this phone belongs to that account. Skipping it costs nothing — the app still tracks
+and still uploads, the rounds just sit on no dashboard until a code is entered.

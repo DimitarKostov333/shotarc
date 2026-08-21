@@ -49,10 +49,18 @@ Put them in `/etc/shotarc.env` on the server (read by the unit, never in git):
 
 ```
 INGEST_KEY=<long random string>       # phones must send it as X-Ingest-Key
-DASHBOARD_KEY=<another long string>   # dashboard needs ?key=… to open
+DASHBOARD_KEY=<another long string>   # JSON API only, as the X-Dashboard-Key header
+ADMIN_USER=<name>                     # seeds the first dashboard account on a fresh box
+ADMIN_PASSWORD=<password>
 ```
 
-Leave either empty and that side is open to anyone who knows the URL. The ingest key has to match
+The `/dashboard` pages open for a signed-in account and nothing else — there is no key that
+skips the login. `DASHBOARD_KEY` is for scripts hitting the JSON endpoints, sent as the
+`X-Dashboard-Key` header; it resolves to the `ADMIN_USER` account and is scoped like any other,
+so it sees that account's rounds and no one else's. Leave it empty and those endpoints need a
+session cookie too.
+
+Leave `INGEST_KEY` empty and uploads are open to anyone who knows the URL. It has to match
 `golfIngestKey` in `gradle.properties` when the APK is built, or uploads will be rejected.
 
 ## Endpoints
@@ -63,9 +71,56 @@ Leave either empty and that side is open to anyone who knows the URL. The ingest
 | `/golf-tracker.apk` | player's browser | the APK, and counts the download |
 | `/api/install` | app, first launch | records an anonymous install id |
 | `/api/sessions` | app, after each shot | upserts the session and its shots |
-| `/dashboard` | you | stat tiles and every session |
-| `/dashboard/session/:id` | you | one round: shot paths, flight profiles, shot table |
-| `/api/stats`, `/api/sessions`, `/api/sessions/:id` | you | the same data as JSON |
+| `/signup`, `/login` | a player's browser | make an account, or sign in to one |
+| `/api/pair` | app, once | ties a phone to an account with a code from that dashboard |
+| `/dashboard` | a signed-in player | their own stat tiles and sessions |
+| `/dashboard/session/:id` | a signed-in player | one of their rounds: shot paths, flight profiles, shot table |
+| `/api/stats`, `/api/sessions`, `/api/sessions/:id` | a signed-in player | the same data as JSON |
+
+## Standing up to a bot
+
+Every request is counted against the address prefix it came from, in memory, per process:
+
+| Surface | Allowance |
+|---|---|
+| any request (assets excluded) | 600 / minute |
+| `POST /login` | 10 / 15 min, cleared by a success |
+| `POST /signup` | 5 / hour, counted whether or not it succeeds |
+| `POST /api/pair` | 10 / 15 min |
+| `GET /golf-tracker.apk` | 30 / 10 min |
+| `POST /api/install`, `/api/sessions` | 240 / 10 min |
+
+The download also counts one address once an hour, so a retried install or a bot in a loop cannot
+inflate the figure the dashboard reports.
+
+Everything the phone posts is coerced in `validate.js` before it reaches the database — a number
+that is not a number becomes null, strings are capped, ids must look like ids, and a session
+carries at most 400 shots of at most 200 track points. This matters more than it looks: the ingest
+key is compiled into the APK, so anyone who unzips it can post whatever they like, and SQLite
+stores text in a column declared INTEGER without complaint. Pages then treat every stored number
+as suspect on the way out too.
+
+## Accounts and whose rounds are whose
+
+A round belongs to the account that the phone which uploaded it is paired to. Nothing else links
+them, so every dashboard and API read joins through `installs.owner` and one account can never
+see another's.
+
+Anyone can make an account at `/signup` — a username and a password, no email. `node
+create-user.js <username> <password>` still works for making or resetting one from the box, and
+`ADMIN_USER`/`ADMIN_PASSWORD` seed the first account on a fresh install.
+
+Pairing a phone: the dashboard shows a six-character code, good for fifteen minutes and one
+phone. The app posts it to `/api/pair` with its install id, behind `X-Ingest-Key`:
+
+```
+POST /api/pair            {"installId": "<uuid>", "code": "TML8E6"}
+  200 {"ok":true,"account":"dim"}   404 unknown or expired   429 too many attempts
+```
+
+An unpaired phone still records and still uploads; its rounds simply sit on no dashboard until it
+is paired, and then they appear. Rounds recorded **before** ownership existed have no owner at
+all — hand them to an account once with `node adopt-installs.js <username>`.
 
 ## Downloads versus installs
 
