@@ -21,12 +21,24 @@ enum class BallColour(
     val lumaFloor: Int,
     /** How the ball is drawn in the picker; detection uses the YCbCr fields, not this. */
     val displayColor: Int,
+    /** False for colours the detector cannot yet handle (Black needs an inverted luma test). */
+    val enabled: Boolean = true,
+    /** One-line caveat shown in the picker, if any. */
+    val note: String? = null,
 ) {
-    WHITE("White", 128, 128, 16, 150, 0xFFF6F4EC.toInt()),
-    YELLOW("Yellow", 6, 133, 42, 80, 0xFFE6E838.toInt()),
+    WHITE("White", 128, 128, 16, 150, 0xFFF6F4EC.toInt(),
+        note = "Hardest — no colour at all, found by brightness alone"),
+    YELLOW("Yellow", 6, 133, 42, 80, 0xFFE6E838.toInt(),
+        note = "Nothing on a course sits near it"),
     ORANGE("Orange", 39, 197, 45, 70, 0xFFFF7A1F.toInt()),
-    NEON_GREEN("Neon green", 40, 88, 30, 115, 0xFFB4F53C.toInt()),
+    NEON_GREEN("Neon green", 40, 88, 30, 115, 0xFFB4F53C.toInt(),
+        note = "Close to grass — split by brightness"),
     RED("Red", 96, 223, 45, 45, 0xFFE23B3B.toInt()),
+    PINK("Pink", 135, 200, 40, 95, 0xFFFF5FA2.toInt()),
+    BLUE("Blue", 200, 95, 38, 70, 0xFF3E7BFF.toInt(),
+        note = "Only the sky competes"),
+    BLACK("Black", 128, 128, 16, 60, 0xFF23262A.toInt(),
+        enabled = false, note = "Inverted test — dark, not bright"),
 }
 
 /**
