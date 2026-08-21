@@ -34,16 +34,31 @@ class DetectorParams private constructor(
     val targetCr: Int,
     val spread: Int,
     val lumaMin: Int,
+    /** Upper luma bound. 255 for a ball found by being bright; a dark ball is found by a ceiling. */
+    val lumaMax: Int = 255,
 ) {
     val spreadSquared = spread * spread
 
     companion object {
         fun forSession(session: SessionSetup, sensitivity: Int): DetectorParams {
             val t = sensitivity.coerceIn(0, 100) / 100f
+            val spread = (session.spread * (0.6f + 1.4f * t)).toInt().coerceAtLeast(8)
+            // A dark ball has no colour and little light, so it is found by chroma near neutral and
+            // a luma CEILING rather than a floor; sensitivity lifts the ceiling to reach a matt ball
+            // in shadow instead of dropping a floor towards it.
+            if (session.ball.dark) {
+                return DetectorParams(
+                    targetCb = session.ball.cb,
+                    targetCr = session.ball.cr,
+                    spread = spread,
+                    lumaMin = 0,
+                    lumaMax = (session.lumaFloor * (0.7f + 0.6f * t)).toInt().coerceIn(24, 150),
+                )
+            }
             return DetectorParams(
                 targetCb = session.ball.cb,
                 targetCr = session.ball.cr,
-                spread = (session.spread * (0.6f + 1.4f * t)).toInt().coerceAtLeast(8),
+                spread = spread,
                 lumaMin = (session.lumaFloor * (1.25f - 0.5f * t)).toInt().coerceAtLeast(20),
             )
         }
@@ -55,16 +70,26 @@ class DetectorParams private constructor(
          * than the nominal one, because it is now centred on the real thing, and opened up for
          * the blur and dimming of a ball in flight.
          */
-        fun around(sample: ColourSample, session: SessionSetup): DetectorParams = DetectorParams(
-            targetCb = sample.cb,
-            targetCr = sample.cr,
+        fun around(sample: ColourSample, session: SessionSetup): DetectorParams {
             // Deliberately not widened by the sensitivity slider. That slider exists to find the
             // ball; once its colour is known the only thing left to allow for is the blur and
             // dimming of flight. Opening up further just lets the mat in — indoors a green mat
             // sits closer to an LED-lit ball than the ball does to its own nominal colour.
-            spread = (session.ball.spread * 0.9f).toInt().coerceAtLeast(12),
-            lumaMin = (sample.y * 0.4f).toInt().coerceAtLeast(20),
-        )
+            val spread = (session.ball.spread * 0.9f).toInt().coerceAtLeast(12)
+            // A dark ball keeps its ceiling once measured — set a touch above the ball's own luma so
+            // flight, which only dims it further, stays inside, while lit background stays out.
+            if (session.ball.dark) {
+                return DetectorParams(
+                    targetCb = sample.cb, targetCr = sample.cr, spread = spread,
+                    lumaMin = 0,
+                    lumaMax = (sample.y * 1.7f + 18f).toInt().coerceIn(30, 150),
+                )
+            }
+            return DetectorParams(
+                targetCb = sample.cb, targetCr = sample.cr, spread = spread,
+                lumaMin = (sample.y * 0.4f).toInt().coerceAtLeast(20),
+            )
+        }
     }
 }
 
@@ -163,7 +188,7 @@ class BallDetector {
                 val dcb = cb - p.targetCb
                 val dcr = cr - p.targetCr
                 if (dcb * dcb + dcr * dcr <= p.spreadSquared) {
-                    if (luma >= p.lumaMin) mask[mi] = 1
+                    if (luma >= p.lumaMin && luma <= p.lumaMax) mask[mi] = 1
                 } else if (cr <= GREEN_CR_MAX && cb <= GREEN_CB_MAX && cr <= cb + 4 && luma >= GREEN_Y_MIN) {
                     green[mi] = 1
                 }

@@ -25,5 +25,9 @@ val RED_BALL = ycbcr(220, 30, 30)
 val GREY_STONE = ycbcr(110, 110, 112)
 val DIM_WHITE_BALL = ycbcr(120, 120, 119)
 
+val BLACK_BALL = ycbcr(40, 40, 40)          // matt black, some sheen — dark and colourless
+val DIM_BLACK_BALL = ycbcr(24, 24, 24)      // the same ball dimmer, as in flight
+
 val YELLOW_DAY = SessionSetup(Environment.OUTDOORS, BallColour.YELLOW, TimeOfDay.NOON)
 val WHITE_DAY = SessionSetup(Environment.OUTDOORS, BallColour.WHITE, TimeOfDay.NOON)
+val BLACK_DAY = SessionSetup(Environment.OUTDOORS, BallColour.BLACK, TimeOfDay.NOON)

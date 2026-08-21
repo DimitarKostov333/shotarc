@@ -361,7 +361,7 @@ class SetupActivity : AppCompatActivity() {
                     typeface = android.graphics.Typeface.MONOSPACE; gravity = Gravity.END
                 })
                 addView(TextView(this@SetupActivity).apply {
-                    text = "FLOOR ${c.lumaFloor}"; textSize = 9.5f; setTextColor(0x80FFFFFF.toInt())
+                    text = "${if (c.dark) "CEIL" else "FLOOR"} ${c.lumaFloor}"; textSize = 9.5f; setTextColor(0x80FFFFFF.toInt())
                     typeface = android.graphics.Typeface.MONOSPACE; gravity = Gravity.END
                 })
             }

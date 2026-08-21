@@ -132,6 +132,7 @@ class BallDetectorTest {
             BallColour.ORANGE to ORANGE_BALL,
             BallColour.NEON_GREEN to NEON_BALL,
             BallColour.RED to RED_BALL,
+            BallColour.BLACK to BLACK_BALL,
         )
         for ((colour, paint) in balls) {
             val f = TestFrame(400, 300)
@@ -208,4 +209,69 @@ class BallDetectorTest {
             assertEquals("radius $r", r.toFloat(), b.radius, (r * 0.15f).coerceAtLeast(1.5f))
         }
     }
+
+    @Test
+    fun findsABlackBallOnGrass() {
+        val f = TestFrame(800, 600)
+        f.fill(GRASS)
+        f.disc(400.0, 300.0, 18.0, BLACK_BALL)
+
+        val b = f.detect(session = BLACK_DAY).single()
+        assertEquals(400f, b.x, 2f)
+        assertEquals(300f, b.y, 2f)
+        assertEquals(18f, b.radius, 2f)
+        assertTrue("a black ball at address still sits on grass", b.groundFraction > 0.9f)
+    }
+
+    @Test
+    fun theBlackWindowFindsDarkAndLeavesEverythingBright() {
+        val f = TestFrame(700, 300)
+        f.fill(GRASS)
+        f.disc(120.0, 150.0, 12.0, BLACK_BALL)
+        f.disc(300.0, 150.0, 12.0, GREY_STONE)     // neutral like the ball, but far too bright
+        f.disc(460.0, 150.0, 12.0, WHITE_BALL_LIT) // the opposite ball
+        f.disc(600.0, 150.0, 12.0, RED_FLAG)
+
+        val found = f.detect(session = BLACK_DAY)
+        assertEquals(1, found.size)
+        assertEquals(120f, found.single().x, 2f)
+    }
+
+    @Test
+    fun aBlackBallIsNotPickedUpByTheOtherBallSettings() {
+        val f = TestFrame(400, 300)
+        f.fill(GRASS)
+        f.disc(200.0, 150.0, 12.0, BLACK_BALL)
+
+        assertTrue("white looks for bright", f.detect(session = WHITE_DAY).isEmpty())
+        assertTrue("yellow looks for colour", f.detect(session = YELLOW_DAY).isEmpty())
+    }
+
+    @Test
+    fun theWindowFittedToTheBlackBallFollowsItIntoFlight() {
+        val ground = TestFrame(400, 300)
+        ground.fill(GRASS)
+        ground.disc(200.0, 150.0, 12.0, BLACK_BALL)
+        val measured = ground.detect(session = BLACK_DAY).single().colour
+        val fitted = DetectorParams.around(measured, BLACK_DAY)
+
+        // dimmer for the blur of flight and against the sky, the fitted window still holds it
+        val air = TestFrame(400, 300)
+        air.fill(SKY)
+        air.disc(200.0, 90.0, 8.0, DIM_BLACK_BALL)
+        val inAir = air.detect(fitted).single()
+        assertEquals(200f, inAir.x, 3f)
+        assertTrue("a ball in the air is not grounded", inAir.groundFraction < 0.2f)
+    }
+
+    @Test
+    fun aBlackBallInFlightIsNotGrounded() {
+        val f = TestFrame(400, 300)
+        f.fill(GRASS)
+        f.disc(200.0, 40.0, 6.0, BLACK_BALL)
+        f.disc(200.0, 40.0, 30.0, SKY)
+        f.disc(200.0, 40.0, 6.0, BLACK_BALL)
+        assertTrue(f.detect(session = BLACK_DAY).single().groundFraction < 0.2f)
+    }
+
 }
