@@ -19,7 +19,17 @@ export function openDatabase(file) {
       last_seen  TEXT NOT NULL,
       app_version TEXT,
       device TEXT,
-      android TEXT
+      android TEXT,
+      owner TEXT REFERENCES users (username)
+    );
+
+    -- A phone joins an account by sending back one of these, shown on the owner's dashboard.
+    CREATE TABLE IF NOT EXISTS pair_codes (
+      code TEXT PRIMARY KEY,
+      username TEXT NOT NULL REFERENCES users (username),
+      created_at TEXT NOT NULL,
+      used_at TEXT,
+      used_by TEXT
     );
 
     CREATE TABLE IF NOT EXISTS downloads (
@@ -68,6 +78,14 @@ export function openDatabase(file) {
 
     CREATE INDEX IF NOT EXISTS shots_by_session ON shots (session_id);
     CREATE INDEX IF NOT EXISTS sessions_by_install ON sessions (install_id);
+    CREATE INDEX IF NOT EXISTS pair_codes_by_user ON pair_codes (username);
   `)
+
+  // CREATE TABLE IF NOT EXISTS leaves an older installs table alone, so the column has to be
+  // added by hand — and before anything indexes it.
+  const columns = db.prepare('PRAGMA table_info(installs)').all().map(c => c.name)
+  if (!columns.includes('owner')) db.exec('ALTER TABLE installs ADD COLUMN owner TEXT')
+
+  db.exec('CREATE INDEX IF NOT EXISTS installs_by_owner ON installs (owner)')
   return db
 }

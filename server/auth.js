@@ -42,9 +42,9 @@ function unsign(token, secret) {
   }
 }
 
-export function makeSessionCookie(username, secret, nowMs) {
+export function makeSessionCookie(username, secret, nowMs, secure = false) {
   const token = sign({ u: username, exp: nowMs + SESSION_DAYS * DAY }, secret)
-  return `${COOKIE}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${SESSION_DAYS * DAY / 1000}`
+  return `${COOKIE}=${token}; HttpOnly; SameSite=Lax; Path=/${secure ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * DAY / 1000}`
 }
 
 export function clearSessionCookie() {
@@ -67,16 +67,37 @@ export function currentUser(req, secret) {
 }
 
 /**
- * Guards the dashboard and its read APIs. A browser session cookie is the normal way in; a
- * matching dashboard key (query or header) is still accepted so scripts and the JSON API keep
- * working. HTML routes redirect to the login page; API routes get a 401.
+ * The dashboard pages: a signed session cookie from a real account, and nothing else. Anyone
+ * without one is sent to the login page.
  */
-export function requireAuth({ secret, dashboardKey, redirect }) {
+export function requirePage(secret) {
   return (req, res, next) => {
     if (currentUser(req, secret)) return next()
-    const offered = req.get('x-dashboard-key') ?? req.query.key
-    if (dashboardKey && offered === dashboardKey) return next()
-    if (redirect) return res.redirect(`/login?next=${encodeURIComponent(req.originalUrl)}`)
+    res.redirect(`/login?next=${encodeURIComponent(req.originalUrl)}`)
+  }
+}
+
+/**
+ * The read-only JSON API, which scripts also use: a session cookie, or the dashboard key in the
+ * `x-dashboard-key` header. Not the query string — that leaks the key into logs and Referer.
+ * Either way the caller ends up as a named account in `req.viewer`, so the same row-level
+ * scoping applies; the key alone is not an account and gets nowhere.
+ */
+export function requireApi({ secret, dashboardKey, keyActsAs }) {
+  return (req, res, next) => {
+    const user = currentUser(req, secret)
+    if (user) { req.viewer = user; return next() }
+    const offered = req.get('x-dashboard-key')
+    if (dashboardKey && offered && timingEqual(offered, dashboardKey) && keyActsAs) {
+      req.viewer = keyActsAs
+      return next()
+    }
     res.status(401).json({ error: 'unauthorised' })
   }
+}
+
+function timingEqual(a, b) {
+  const x = Buffer.from(String(a))
+  const y = Buffer.from(String(b))
+  return x.length === y.length && timingSafeEqual(x, y)
 }
